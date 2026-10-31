@@ -1,5 +1,6 @@
 name: NEAR integration
 on:
+  workflow_dispatch:
   push:
     paths: ["packages/near/**", "packages/contracts-near/**", "scripts/near/**", "pnpm-lock.yaml", ".github/workflows/near.yml"]
   pull_request:
