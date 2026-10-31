@@ -437,12 +437,6 @@ export default function WalletPage() {
                 loading={agentsLoading}
                 onTotalBalanceUpdate={setAgentBalanceUsdc}
               />
-
-              <DegenTradingMarginCommand
-                agents={myAgents}
-                loading={agentsLoading}
-                onTotalMarginUpdate={setDegenMarginUsdc}
-              />
             </div>
 
             {/* 2-Column Grid: Cross-Chain Bridges & Contributor Points */}

@@ -84,6 +84,7 @@ import {
 } from "lucide-react";
 import { toIndexerChainSlug, type EvmChainConfig } from "@/lib/chains";
 import { AgentKeyManager, FollowButton } from "@/components/social";
+import { AttestationCard } from "@/components/near/AttestationCard";
 import { CircuitsAiReasoningCard, DegenWalletRow, AgentTradingCollateralCard } from "@/components/degen";
 import { formatRelativeTime, formatUsdc, formatCredits } from "@/lib/format";
 import { FOUNDATION_MODELS, tierMetaFor, TIER_CREDIT_HINT, byokProviderForModel } from "@/lib/foundationModels";
@@ -100,7 +101,7 @@ type Tab = "Overview" | "Persona" | "Social & Broadcast" | "Runtime" | "Skills" 
 const TAB_GROUPS: { label: string; tabs: Tab[] }[] = [
   { label: "Identity", tabs: ["Overview", "Persona", "Social & Broadcast"] },
   { label: "Operate", tabs: ["Runtime", "Skills", "Analytics"] },
-  { label: "Money & Risk", tabs: ["Wallet", "Degen"] },
+  { label: "Money & Risk", tabs: ["Wallet"] },
   { label: "Developer", tabs: ["Webhooks"] },
 ];
 
@@ -125,7 +126,7 @@ const SPEND_ACTION_OPTIONS: { id: SpendAction; label: string }[] = [
   { id: "X402_PAYMENT", label: "Make x402 payments" },
   { id: "CALL_SKILL", label: "Call installed skills that have a price" },
   { id: "USE_KNOWLEDGE", label: "Pay for knowledge contributions" },
-  { id: "SWAP", label: "Swap USDC on Monad Xero AMM & DEX Pools" },
+  { id: "SWAP", label: "Swap USDC via NEAR Intents (configured mainnet assets)" },
 ];
 
 // FULLY_AUTONOMOUS isn't offered here — packages/hosted-agent-runtime's tick.ts explicitly
@@ -398,7 +399,7 @@ export default function AgentProfilePage() {
       if (lower === "wallet") return "Wallet";
       if (lower === "skills") return "Skills";
       if (lower === "social") return "Social & Broadcast";
-      if (lower === "degen") return "Degen";
+      if (lower === "degen") return "Wallet";
       if (lower === "analytics") return "Analytics";
     }
     return "Overview";
@@ -829,6 +830,7 @@ export default function AgentProfilePage() {
       {/* ── Overview ── */}
       {activeTab === "Overview" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <AttestationCard chain={chainSlug} agentChainId={id} />
           {agentDescription && (
             <div className="col-span-2 bg-bg-elevated border border-border-subtle rounded-[14px] p-5">
               <div className="text-[10.5px] font-bold uppercase tracking-wider text-text-quaternary mb-3">Description</div>
@@ -2848,7 +2850,7 @@ export default function AgentProfilePage() {
                   <span>Autonomous Market Strategy</span>
                 </span>
                 <p className="text-[10.5px] text-text-quaternary leading-normal">
-                  Capital utilized directly for live algorithmic perps, prediction markets, and launchpad memecoin sniping.
+                  Funds reserved for agent commerce and scoped service payments.
                 </p>
               </div>
             </div>

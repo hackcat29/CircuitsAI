@@ -161,7 +161,7 @@ async function handleAction(chain: CustodyChain, agentChainId: string, action: A
     }
     try {
       const result = await swapAgentWalletUsdcForWeth(chain, agentChainId, action.amountUsdc);
-      return `swapped ${action.amountUsdc} USDC for WETH (${result.targetRef}, tx ${result.txHashOrRef})`;
+      return `Submitted ${action.amountUsdc} USDC to NEAR Intents (${result.targetRef}, tx ${result.txHashOrRef})`;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return `SWAP rejected: ${message}`;
@@ -237,7 +237,11 @@ async function handleAction(chain: CustodyChain, agentChainId: string, action: A
     }
   }
 
-  // --- Expanded Roadmap: Isolated Trading Vault Execution ---
+  if (["OPEN_PERP_POSITION", "CLOSE_PERP_POSITION", "BUY_PREDICTION_SHARES", "CLAIM_PREDICTION_WINNINGS"].includes(action.kind)) {
+    return "Trading is retired; this runtime supports agent commerce only.";
+  }
+
+  // --- Legacy trading execution (disabled above) ---
   if (action.kind === "OPEN_PERP_POSITION") {
     if (!action.symbol) return "OPEN_PERP_POSITION decided but missing symbol — ignored.";
     try {

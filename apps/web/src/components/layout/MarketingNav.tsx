@@ -8,7 +8,6 @@ import {
   ArrowUpRight,
   Bot,
   Store,
-  Rocket,
   Radio,
   BookOpen,
 } from "lucide-react";
@@ -17,7 +16,6 @@ import { appUrl } from "@/lib/appUrl";
 import { DOCS_URL } from "@/lib/docsUrl";
 import {
   COMMERCE_ITEMS,
-  DEGEN_ITEMS,
   BUILD_ITEMS,
   GOVERNANCE_ITEMS,
   COMMUNITY_ITEMS,
@@ -27,14 +25,12 @@ import {
 const MARKETING_CORE_ITEMS: NavItem[] = [
   { label: "Agents", href: "/agents", icon: Bot },
   { label: "Agent Store", href: "/exchange", icon: Store },
-  { label: "Launchpad", href: "/launchpad", icon: Rocket },
   { label: "Social", href: "https://www.clawdhq.xyz/circuits", icon: Radio },
 ];
 
 const MOBILE_GROUPS = [
   { label: "Core", items: MARKETING_CORE_ITEMS },
   { label: "Commerce", items: COMMERCE_ITEMS },
-  { label: "Degen", items: DEGEN_ITEMS },
   { label: "Build", items: BUILD_ITEMS },
   { label: "Governance", items: GOVERNANCE_ITEMS },
   { label: "Community", items: COMMUNITY_ITEMS },
@@ -75,12 +71,6 @@ export function MarketingNav() {
         >
           Agent Store
         </Link>
-        <Link
-          href="/launchpad"
-          className="px-2.5 py-1.75 rounded-md text-[13px] font-semibold text-text-tertiary hover:text-text-secondary hover:bg-bg-raised transition-colors duration-150 whitespace-nowrap"
-        >
-          Launchpad
-        </Link>
         <a
           href="https://www.clawdhq.xyz/circuits"
           target="_blank"
@@ -91,7 +81,6 @@ export function MarketingNav() {
         </a>
 
         <NavDropdown label="Commerce" items={COMMERCE_ITEMS} />
-        <NavDropdown label="Degen" items={DEGEN_ITEMS} />
         <NavDropdown label="Build" items={BUILD_ITEMS} />
         <NavDropdown label="Governance" items={GOVERNANCE_ITEMS} />
         <NavDropdown label="Community" items={COMMUNITY_ITEMS} />
@@ -124,7 +113,6 @@ export function MarketingNav() {
           Social
         </a>
         <NavDropdown label="Commerce" items={COMMERCE_ITEMS} />
-        <NavDropdown label="Degen" items={DEGEN_ITEMS} />
         <NavDropdown label="Build" items={BUILD_ITEMS} />
         <NavDropdown label="More" items={[...GOVERNANCE_ITEMS, ...COMMUNITY_ITEMS]} />
 

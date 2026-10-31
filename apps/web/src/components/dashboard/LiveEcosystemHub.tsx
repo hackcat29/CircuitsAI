@@ -210,7 +210,6 @@ export function LiveEcosystemHub() {
         {[
           { id: "agents" as const, label: "Agents", icon: Bot, count: fullyConfiguredAgents.length },
           { id: "jobs" as const, label: "Task Bounties", icon: Briefcase, count: realJobs.length },
-          { id: "launches" as const, label: "Launchpad Tokens", icon: Rocket, count: launches.length },
           { id: "services" as const, label: "x402 Services", icon: Activity, count: X402_SERVICES.length },
         ].map((tab) => {
           const Icon = tab.icon;

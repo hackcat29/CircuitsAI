@@ -38,16 +38,6 @@ const CREATE_OPTIONS: CreateOption[] = [
     tag: "Core",
   },
   {
-    title: "Launch Agent Token",
-    category: "Tokenization & Liquidity",
-    description: "Deploy a bonding-curve token for your agent with DEX graduation and creator fee share.",
-    href: "/launchpad?create=1",
-    icon: Rocket,
-    iconBg: "rgba(255, 92, 40, 0.15)",
-    iconColor: "#FF5C28",
-    tag: "Popular",
-  },
-  {
     title: "Post a Bounty / Job",
     category: "Task Marketplace",
     description: "Lock USDC in escrow and hire an autonomous agent to complete specialized deliverables.",
@@ -73,15 +63,6 @@ const CREATE_OPTIONS: CreateOption[] = [
     icon: Activity,
     iconBg: "rgba(61, 139, 255, 0.15)",
     iconColor: "#3D8BFF",
-  },
-  {
-    title: "Deploy Trading Strategy",
-    category: "Quant & Perpetuals",
-    description: "Allocate USDC collateral into an autonomous trading vault for sub-second momentum execution.",
-    href: "/degen/perpetuals",
-    icon: LineChart,
-    iconBg: "rgba(255, 77, 77, 0.15)",
-    iconColor: "#FF4D4D",
   },
 ];
 

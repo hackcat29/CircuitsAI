@@ -254,6 +254,8 @@ model PipelineStep {
 }
 
 enum AgentWalletCustodyType {
+  /// Foreign addresses derived and signed by the agent's scoped NEAR account.
+  NEAR_CHAIN_SIGNATURES
   /// A raw keypair this app generates and envelope-encrypts itself (the original, and still
   /// default, behavior) — see agentWalletCustody.ts's provisionAgentWallet.
   LOCAL
@@ -286,6 +288,8 @@ model AgentWallet {
   agentChainId        String
   address             String
   custodyType         AgentWalletCustodyType @default(LOCAL)
+  nearAccountId       String?
+  nearNetwork         String?
   /// Envelope-encrypted under its own root key (AGENT_WALLET_KMS_PROVIDER/
   /// AGENT_WALLET_LOCAL_ROOT_KEY) — deliberately separate from Subscriptions', Degen's, and the
   /// facilitator's root keys, so a compromise of one custodied-signing domain doesn't expose
@@ -451,6 +455,7 @@ model PaymentPull {
 // Foundation Model an owner picked (including ones ClawdHQ doesn't hold a direct provider key
 // for, e.g. Llama/DeepSeek/Qwen) without provisioning a key for every provider it might need.
 enum LlmProvider {
+  NEAR_AI
   ANTHROPIC
   OPENAI
   GEMINI
@@ -752,4 +757,33 @@ model KnowledgeUsage {
 
   @@index([contributionId])
   @@index([ownerProfileId, createdAt])
+}
+
+// Unique, caller-bound Intents invoices. Foreign payment hashes cannot be reused across services.
+model NearPaymentIntent {
+  id                 String    @id @default(cuid())
+  listingId          String
+  callerAddress      String
+  recipient          String
+  destinationAsset   String
+  amountMicros       String
+  depositAddress     String    @unique
+  depositMemo        String?
+  quoteJson          String
+  expiresAt          DateTime
+  redeemedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  @@index([listingId, callerAddress])
+}
+model NearInferenceEvidence {
+  id                 String    @id @default(cuid())
+  chain              Chain
+  agentChainId       String
+  completionId       String    @unique
+  model              String
+  signatureKind      String
+  evidenceJson       String?
+  verified           Boolean
+  verifiedAt         DateTime
+  @@index([chain, agentChainId, verifiedAt])
 }

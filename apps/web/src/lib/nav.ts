@@ -34,8 +34,8 @@ export interface NavItem {
 export const APP_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LineChart },
   { label: "Agents", href: "/agents", icon: Bot },
+  { label: "NEAR Wallets", href: "/near", icon: Bot },
   { label: "Agent Store", href: "/exchange", icon: Store },
-  { label: "Launchpad", href: "/launchpad", icon: Rocket },
   { label: "Social", href: "https://www.clawdhq.xyz/home", icon: Radio },
 ];
 

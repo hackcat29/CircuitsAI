@@ -1,0 +1,127 @@
+{
+  "network": "testnet",
+  "owner": "circuitsai-hackcat.testnet",
+  "commerce": "circuitsai-hackcat.testnet",
+  "token": "usdc.circuitsai-hackcat.testnet",
+  "buyer": "alpha.circuitsai-hackcat.testnet",
+  "provider": "circuitsai-hackcat.testnet",
+  "mockUsdc": true,
+  "mpc": "v1.signer-prod.testnet",
+  "completed": true,
+  "transactions": [
+    {
+      "label": "Deploy commerce",
+      "hash": "AW6eaSdhw1dasinq3fWNxawiJwtMdyyt6WrCKDm32AYN"
+    },
+    {
+      "label": "Deploy mock USDC",
+      "hash": "9qg1RVUHmszEha7qCgbHiy4VxoEG1GPzFqZBfytqbWy3"
+    },
+    {
+      "label": "Create scoped agent wallet",
+      "hash": "ERnNXoEowzzHVTRXGemyZMjMXazpL1wkwRsrvcVNEbdt"
+    },
+    {
+      "label": "Install provider runtime key",
+      "hash": "EwvGeRbVf2sDZ1r2WbXcdT7mpv7HMWUTHbcXCqFMDsnG"
+    },
+    {
+      "label": "Register circuitsai-hackcat.testnet",
+      "hash": "8gNnxLspW2NAdMhUKH2k59b4DBvL8HqyamRHsPBsWU1j"
+    },
+    {
+      "label": "Register alpha.circuitsai-hackcat.testnet",
+      "hash": "9HpuGPFVkRKLY7pQW94HkpHftQDcetYoEACKgFSjUhcu"
+    },
+    {
+      "label": "Set on-chain USDC policy",
+      "hash": "GURTsJZkVCkQ3PrHMgwUkRhjmEbhyZYPxannA6kBd3QG"
+    },
+    {
+      "label": "Mint test-only USDC",
+      "hash": "GWC26YsY6zuQZmwMkGWzpb7N3RDJztMrGX7DwaRgwuZ"
+    },
+    {
+      "label": "Fund agent escrow",
+      "hash": "6gQfhJsFhwPXZm4DCPjepfBned1Z1nGhwioUgZkRqFnd"
+    },
+    {
+      "label": "Fund agent job",
+      "hash": "GK2KsZ7K8b48hGPARq93CxhrZu7jdH5pQmahMvxKKdnT"
+    },
+    {
+      "label": "Deliver with provider's scoped key",
+      "hash": "BZf1A5saycj4cqJCx5jX78DAiBxauWfejhdBHBsQuyX7"
+    },
+    {
+      "label": "Release completed work",
+      "hash": "Hb1CXbXzeAQuYuFGYfEhdhUs9q5yVQjMXJKLWmpXWskS"
+    },
+    {
+      "label": "Fund dispute example",
+      "hash": "Bbn5hMx6L4FDgw5LmNud56V6CLW5kiKqNwWyZPQpxky"
+    },
+    {
+      "label": "Open escrow dispute",
+      "hash": "ErX9QK39wvxbKkz8gX3381Nq86t6NJyY2J1jJSqzrcgk"
+    },
+    {
+      "label": "Resolve disputed work",
+      "hash": "DiCrvi8koaMwybhKD1gRWFPSwTMTjefc2w5dQLFA8Vri"
+    },
+    {
+      "label": "Set foreign-transfer policy",
+      "hash": "HX3853ThkMqha5jpJUjE5XybuYUYnLQXFnB5rUdjhFWb"
+    },
+    {
+      "label": "Set on-chain USDC policy",
+      "hash": "GWgiqruGXd1FncBrbBMBqk5saQc9hHgMkn2GpEJX6W7j"
+    },
+    {
+      "label": "Increase finite runtime gas allowance",
+      "hash": "6m2WYkaRshuhXQaySZgiZSPh9f9ZQmjv54TYWGemriQP"
+    },
+    {
+      "label": "Set foreign-transfer policy",
+      "hash": "4Bz7Z9MFMF6rpRea8qoLcpu4Gfo8tCv66Wo6QgM23YyQ"
+    },
+    {
+      "label": "Verify live MPC signature",
+      "hash": "AA8zvA1guWAjm9C766SgNidyoYGKrqjzhSZ2397Ng3M6"
+    }
+  ],
+  "chainSignature": {
+    "verified": true,
+    "address": "0x2748383dfdaab4f623361432061bdc00561196b2",
+    "chainId": 84532,
+    "broadcast": false,
+    "syntheticTestTransfer": true
+  },
+  "buyerState": {
+    "owner": "circuitsai-hackcat.testnet",
+    "balance": "900000",
+    "max_per_job": "100000",
+    "daily_limit": "1000000",
+    "providers": [
+      "circuitsai-hackcat.testnet"
+    ],
+    "spent_day": 20757,
+    "spent": "150000",
+    "completed": 0,
+    "disputed": 0,
+    "paused": false
+  },
+  "providerState": {
+    "owner": "circuitsai-hackcat.testnet",
+    "balance": "100000",
+    "max_per_job": "0",
+    "daily_limit": "0",
+    "providers": [],
+    "spent_day": 0,
+    "spent": "0",
+    "completed": 1,
+    "disputed": 1,
+    "paused": false
+  },
+  "explorerUrl": "https://testnet.nearblocks.io/address/circuitsai-hackcat.testnet"
+}

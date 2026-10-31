@@ -12,7 +12,7 @@ const TRANSFER_EVENT = parseAbiItem("event Transfer(address indexed from, addres
  * clean match — an unconfirmed/reverted tx, a transfer of the wrong token, wrong parties, or an
  * insufficient amount are all just "not verified," not distinguished failure modes the caller
  * needs to branch on. */
-export async function verifyUsdcTransfer(chain: Chain, txHash: string, from: string, to: string, minAmountMicros: bigint): Promise<boolean> {
+export async function verifyUsdcTransfer(chain: Chain, txHash: string, from: string | null, to: string, minAmountMicros: bigint): Promise<boolean> {
   if (!isEvmPrismaChain(chain)) return false;
 
   try {
@@ -26,7 +26,7 @@ export async function verifyUsdcTransfer(chain: Chain, txHash: string, from: str
       try {
         const decoded = decodeEventLog({ abi: [TRANSFER_EVENT], data: log.data, topics: log.topics });
         if (
-          decoded.args.from.toLowerCase() === from.toLowerCase() &&
+          (!from || decoded.args.from.toLowerCase() === from.toLowerCase()) &&
           decoded.args.to.toLowerCase() === to.toLowerCase() &&
           decoded.args.value >= minAmountMicros
         ) {

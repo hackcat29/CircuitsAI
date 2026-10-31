@@ -67,7 +67,7 @@ export function loadEvmChainConfig(chain: EvmChainId): EvmChainIndexerConfig | u
   // Falls back to apps/web's own NEXT_PUBLIC_-prefixed var (same shared root .env) so this
   // doesn't need a second copy of an address that's already configured for the browser.
   const launchpadAddress = process.env[`${prefix}_LAUNCHPAD_ADDRESS`] ?? process.env[`NEXT_PUBLIC_${prefix}_LAUNCHPAD_ADDRESS`];
-  if (!rpcUrl || !coreAddress || !exchangeAddress || !launchpadAddress) return undefined;
+  if (!rpcUrl || !coreAddress || !exchangeAddress) return undefined;
 
   const fromBlockEnv = process.env[`${prefix}_DEPLOYMENT_BLOCK`];
   const logBatchBlocksEnv = process.env[`${prefix}_LOG_BATCH_BLOCKS`];
@@ -95,7 +95,7 @@ export function loadEvmChainConfig(chain: EvmChainId): EvmChainIndexerConfig | u
     rpcUrl,
     coreAddress: coreAddress as `0x${string}`,
     exchangeAddress: exchangeAddress as `0x${string}`,
-    launchpadAddress: launchpadAddress as `0x${string}`,
+    launchpadAddress: (launchpadAddress ?? "0x0000000000000000000000000000000000000000") as `0x${string}`,
     agentWalletRegistryAddress: agentWalletRegistryAddress ? (agentWalletRegistryAddress as `0x${string}`) : undefined,
     fromBlock: fromBlockEnv ? BigInt(fromBlockEnv) : 0n,
     logBatchBlocks: logBatchBlocksEnv ? BigInt(logBatchBlocksEnv) : LOG_BATCH_BLOCKS,

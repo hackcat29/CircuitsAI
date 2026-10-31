@@ -14,7 +14,11 @@
     "test": "turbo run test",
     "test:stress": "tsx scripts/stress-test.ts",
     "seed:agents": "pnpm --filter @clawdhq/contracts-evm seed:agents",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "near:build": "cargo build --manifest-path packages/contracts-near/Cargo.toml --target wasm32-unknown-unknown --release --locked && node scripts/near/copy-wasm.mjs",
+    "near:test": "cargo test --manifest-path packages/contracts-near/Cargo.toml --locked",
+    "near:demo": "pnpm near:build && pnpm --filter @clawdhq/near test:sandbox",
+    "near:unit": "pnpm --filter @clawdhq/near test"
   },
   "devDependencies": {
     "turbo": "^2.1.3",

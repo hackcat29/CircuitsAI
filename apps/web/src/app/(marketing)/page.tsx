@@ -17,7 +17,6 @@ import {
 import { Reveal } from "@/components/marketing/Reveal";
 import { HeroAgentCard } from "@/components/marketing/HeroAgentCard";
 import { AgentStudioPreview } from "@/components/marketing/AgentStudioPreview";
-import { TokenizationEngine } from "@/components/marketing/TokenizationEngine";
 import { CommerceCascade } from "@/components/marketing/CommerceCascade";
 import { EconomicFlywheel } from "@/components/marketing/EconomicFlywheel";
 import { MobileHomepage } from "@/components/marketing/MobileHomepage";
@@ -308,9 +307,7 @@ export default function Home() {
           </Reveal>
 
           {/* 06 & 07. TOKENIZATION ENGINE & AGENT VS TOKEN COMPARISON */}
-          <Reveal>
-            <TokenizationEngine />
-          </Reveal>
+
 
           {/* 08 & 09. AGENT COMMERCE & AGENT-TO-AGENT HIRING CASCADE */}
           <Reveal>

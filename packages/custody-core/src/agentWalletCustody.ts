@@ -1,3 +1,5 @@
+import { NearClient, nearConfig, derivedEvmAddress } from "@clawdhq/near";
+import { viemChainFor } from "./evmChainConfig.js";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -75,6 +77,19 @@ function generateSuiWallet(): { address: string; secretMaterial: string } {
 export async function provisionAgentWallet(chain: Chain, agentChainId: string): Promise<AgentWallet> {
   const existing = await prisma.agentWallet.findUnique({ where: { chain_agentChainId: { chain, agentChainId } } });
   if (existing) return existing;
+
+  if (process.env.AGENT_WALLET_CUSTODY_MODE === "NEAR_CHAIN_SIGNATURES") {
+    if (!isEvmPrismaChain(chain)) throw new Error("NEAR-backed non-EVM wallet migration requires a chain-specific policy adapter");
+    const bindings = JSON.parse(process.env.NEAR_AGENT_ACCOUNT_BINDINGS_JSON ?? "{}") as Record<string, string>;
+    const nearAccountId = bindings[`${chain}:${agentChainId}`];
+    if (!nearAccountId) throw new Error("Create the owner's NEAR agent account and configure its binding before provisioning");
+    const config = nearConfig();
+    const client = new NearClient(config.rpcUrl);
+    const wallet = await client.view<{ commerce: string }>(nearAccountId, "get_config");
+    if (wallet.commerce !== config.commerce) throw new Error("Agent wallet does not use this commerce deployment");
+    const address = await derivedEvmAddress(client, config.mpc, nearAccountId, viemChainFor(chain).id);
+    return prisma.agentWallet.create({ data: { chain, agentChainId, address, custodyType: AgentWalletCustodyType.NEAR_CHAIN_SIGNATURES, nearAccountId, nearNetwork: config.network, encryptedPrivateKey: null, status: WalletStatus.ACTIVE } });
+  }
 
   const isCircleConfigured = Boolean(process.env.CIRCLE_API_KEY && process.env.CIRCLE_ENTITY_SECRET);
   const isCircleChain = chain === "ARC_MAINNET" || chain === "ARC_TESTNET";
@@ -240,7 +255,7 @@ export async function getAgentWalletAddress(chain: Chain, agentChainId: string):
 export async function getDecryptedAgentWallet(chain: Chain, agentChainId: string): Promise<{ address: string; privateKey: string } | null> {
   const wallet = await prisma.agentWallet.findUnique({ where: { chain_agentChainId: { chain, agentChainId } } });
   if (!wallet || wallet.status !== WalletStatus.ACTIVE) return null;
-  if (wallet.custodyType === AgentWalletCustodyType.CIRCLE || !wallet.encryptedPrivateKey) {
+  if (wallet.custodyType !== AgentWalletCustodyType.LOCAL || !wallet.encryptedPrivateKey) {
     throw new Error(`AgentWallet ${chain}:${agentChainId} is Circle-custodied — no local private key exists; use getAgentEvmSigner instead.`);
   }
   return { address: wallet.address, privateKey: await decryptPrivateKey(wallet.encryptedPrivateKey) };

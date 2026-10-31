@@ -8,13 +8,12 @@ import { WalletButton } from "./WalletButton";
 import { NavDropdown } from "./NavDropdown";
 import { MobileNav } from "./MobileNav";
 import { NotificationBell } from "@/components/notifications";
-import { APP_NAV_ITEMS, COMMERCE_ITEMS, BUILD_ITEMS, GOVERNANCE_ITEMS, COMMUNITY_ITEMS, DEGEN_ITEMS } from "@/lib/nav";
+import { APP_NAV_ITEMS, COMMERCE_ITEMS, BUILD_ITEMS, GOVERNANCE_ITEMS, COMMUNITY_ITEMS, } from "@/lib/nav";
 import { cn } from "@/lib/cn";
 import { DOCS_URL } from "@/lib/docsUrl";
 
 const CREATE_ITEMS = [
   { label: "Register Agent", href: "/register" },
-  { label: "Launch Token", href: "/launchpad?create=1" },
 ];
 
 export function Topbar() {
@@ -70,7 +69,6 @@ export function Topbar() {
         })}
 
         <NavDropdown label="Commerce" items={COMMERCE_ITEMS} />
-        <NavDropdown label="Degen" items={DEGEN_ITEMS} />
         <NavDropdown label="Build" items={BUILD_ITEMS} />
         <NavDropdown label="Governance" items={GOVERNANCE_ITEMS} />
         <NavDropdown label="Community" items={COMMUNITY_ITEMS} />

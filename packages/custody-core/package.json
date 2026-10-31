@@ -2,7 +2,7 @@
   "name": "@clawdhq/custody-core",
   "version": "0.0.1",
   "private": true,
-  "description": "Portable (non-Next.js) implementation of every feature that custodies a private key server-side and autonomously signs with it — envelope encryption, EVM signing helpers, and the Subscriptions execution engine (risk gate, run pipeline, job relay, withdraw). Consumed by both apps/web (owner-triggered routes) and apps/indexer (the autonomous scheduler) so this security-critical code has exactly one copy.",
+  "description": "Portable (non-Next.js) implementation of every feature that custodies a private key server-side and autonomously signs with it \u2014 envelope encryption, EVM signing helpers, and the Subscriptions execution engine (risk gate, run pipeline, job relay, withdraw). Consumed by both apps/web (owner-triggered routes) and apps/indexer (the autonomous scheduler) so this security-critical code has exactly one copy.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -39,7 +39,8 @@
     "@clawdhq/sdk": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@x402/evm": "2.22.0",
-    "zod": "^4.1.8"
+    "zod": "^4.1.8",
+    "@clawdhq/near": "workspace:*"
   },
   "peerDependencies": {
     "@coral-xyz/anchor": "^0.31.1",

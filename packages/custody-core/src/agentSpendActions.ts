@@ -1,3 +1,6 @@
+import { NearCommerce } from "@clawdhq/near";
+import { prisma as nearWalletPrisma, AgentWalletCustodyType } from "@clawdhq/custody-db";
+import { getNearAgentRuntime } from "./nearAgentSigner.js";
 import { createHash } from "node:crypto";
 import { parseUnits, formatUnits, isAddress } from "viem";
 import { GatewayClient } from "@circle-fin/x402-batching/client";
@@ -7,7 +10,7 @@ import { getDecryptedAgentWallet } from "./agentWalletCustody.js";
 import { executeAgentSpend, type AgentSpendExecutionResult } from "./agentSpendPolicy.js";
 import { isEvmPrismaChain, viemChainFor, type EvmPrismaChain } from "./evmChainConfig.js";
 import { getSigningEvmAdapter, transferErc20Amount } from "./signingEvmAdapter.js";
-import { swapUsdcForWeth } from "./uniswapSwap.js";
+import { swapAgentUsdcViaIntents } from "./nearIntentsSwap.js";
 import { postAgentChainActivityToClawdHq } from "./clawdhqLinkCustody.js";
 
 /** Same digest convention as subscriptionRunJob.ts's sha256Hex — reimplemented here (not
@@ -35,6 +38,15 @@ export async function postJobFromAgentWallet(
   const evmChain: EvmPrismaChain = chain;
 
   const result = await executeAgentSpend(chain, agentChainId, SpendAction.POST_JOB, budgetUsdc, async () => {
+    const wallet = await nearWalletPrisma.agentWallet.findUnique({ where: { chain_agentChainId: { chain: evmChain, agentChainId } } });
+    if (wallet?.custodyType === AgentWalletCustodyType.NEAR_CHAIN_SIGNATURES) {
+      if (!wallet.nearAccountId || !wallet.nearNetwork) throw new Error("NEAR wallet binding is incomplete");
+      const provider = await nearWalletPrisma.agentWallet.findUnique({ where: { chain_agentChainId: { chain: evmChain, agentChainId: hiredAgentId } } });
+      if (!provider?.nearAccountId) throw new Error("The hired agent must have a NEAR account binding");
+      const { client, config, runtime } = await getNearAgentRuntime(wallet.nearAccountId, wallet.nearNetwork);
+      const job = await new NearCommerce(client, config.commerce).postJob(runtime, { provider: provider.nearAccountId, amountMicros: parseUnits(budgetUsdc, 6).toString(), task: taskDescription, deadline: new Date(Date.now() + deadlineDays * 86_400_000) });
+      return { txHashOrRef: job.transactionHash, targetRef: `near:${config.commerce}:${job.value}` };
+    }
     const signer = await getAgentEvmSigner(evmChain, agentChainId);
     if (!signer) throw new Error("No AgentWallet has been provisioned for this agent yet.");
 
@@ -211,22 +223,7 @@ export async function payX402ResourceFromAgentWallet(chain: Chain, agentChainId:
  * for this action, unlike a hypothetical "just wire a DEX as a skill" shortcut would have.
  * EVM-only, and further scoped to Base Sepolia / Ethereum Sepolia specifically — see
  * uniswapSwap.ts's top comment for why only those two. */
+/** Compatibility name for existing API callers; settlement now uses configured NEAR Intents assets. */
 export async function swapAgentWalletUsdcForWeth(chain: Chain, agentChainId: string, amountUsdc: string): Promise<AgentSpendExecutionResult> {
-  if (!isEvmPrismaChain(chain)) throw new Error(`swapAgentWalletUsdcForWeth isn't wired up for ${chain} yet — EVM only for now.`);
-  const evmChain: EvmPrismaChain = chain;
-
-  const result = await executeAgentSpend(chain, agentChainId, SpendAction.SWAP, amountUsdc, async () => {
-    const signer = await getAgentEvmSigner(evmChain, agentChainId);
-    if (!signer) throw new Error("No AgentWallet has been provisioned for this agent yet.");
-
-    const amountIn = parseUnits(amountUsdc, 6);
-    const swap = await swapUsdcForWeth(evmChain, signer, amountIn);
-
-    return { txHashOrRef: swap.txHashOrRef, targetRef: `${swap.amountInUsdc} USDC -> ${swap.amountOutWeth} WETH` };
-  });
-
-  await postAgentChainActivityToClawdHq(evmChain, agentChainId, (name, profileUrl) =>
-    `🔄 ${name} just swapped ${result.targetRef} on Circuits Protocol. ${profileUrl}`
-  );
-  return result;
+  return swapAgentUsdcViaIntents(chain, agentChainId, amountUsdc);
 }

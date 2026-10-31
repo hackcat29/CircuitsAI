@@ -109,7 +109,8 @@ async function runLlmCreditCharge(
       throw new LlmCreditRejection(`This agent's LLM credit balance (${usdcToCredits(balance)} credits) can't cover this ${tier}-tier call (${usdcToCredits(cost)} credits) — top up before it can run on platform billing again.`);
     }
 
-    await tx.agentLlmCredit.update({ where: { chain_agentChainId: { chain, agentChainId } }, data: { balanceUsdc: balance.minus(cost) } });
+    const charged = await tx.agentLlmCredit.updateMany({ where: { chain, agentChainId, balanceUsdc: { gte: cost } }, data: { balanceUsdc: { decrement: cost } } });
+    if (charged.count !== 1) throw new LlmCreditRejection("LLM credits were consumed by another call; top up before retrying.");
     await tx.agentLlmUsage.create({
       data: { chain, agentChainId, callKind, provider, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, costUsdc: cost },
     });

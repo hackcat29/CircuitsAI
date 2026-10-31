@@ -27,6 +27,13 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  let retiredPath: string;
+  try { retiredPath = decodeURIComponent(pathname); } catch { return new NextResponse("Invalid path", { status: 400 }); }
+  const retainedSafetyAction = /^\/api\/degen\/agents\/[^/]+\/[^/]+\/(?:kill|wallets\/[^/]+\/withdraw)$/.test(retiredPath);
+  if (!retainedSafetyAction && (/^\/(?:app\/)?(?:launchpad|degen)(?:\/|$)/.test(retiredPath) || /^\/api\/(?:launchpad|degen)(?:\/|$)/.test(retiredPath))) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
   if (pathname.startsWith("/api/")) {
     const target = process.env.API_PROXY_TARGET;
     if (!target) return NextResponse.next();

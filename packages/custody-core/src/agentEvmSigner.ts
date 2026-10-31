@@ -1,3 +1,4 @@
+import { getNearAgentSigner } from "./nearAgentSigner.js";
 import { custom, numberToHex } from "viem";
 import { createCircleClient } from "@clawdhq/circle";
 import { prisma, WalletStatus, AgentWalletCustodyType } from "@clawdhq/custody-db";
@@ -12,7 +13,7 @@ export interface AgentEvmSigner extends EvmSigner {
    * registrar's native-gas top-up step for CIRCLE wallets (Circle's own infrastructure covers
    * gas for its wallets; sending this app's registrar funds to a wallet it doesn't fully custody
    * would be an unrelated funding decision, not this app's to make). */
-  custodyType: "LOCAL" | "CIRCLE";
+  custodyType: "LOCAL" | "CIRCLE" | "NEAR_CHAIN_SIGNATURES";
 }
 
 /** The one branch point every EVM write against an agent's AgentWallet goes through instead of
@@ -23,6 +24,13 @@ export interface AgentEvmSigner extends EvmSigner {
 export async function getAgentEvmSigner(chain: EvmPrismaChain, agentChainId: string): Promise<AgentEvmSigner | null> {
   const wallet = await prisma.agentWallet.findUnique({ where: { chain_agentChainId: { chain, agentChainId } } });
   if (!wallet || wallet.status !== WalletStatus.ACTIVE) return null;
+
+  if (wallet.custodyType === AgentWalletCustodyType.NEAR_CHAIN_SIGNATURES) {
+    if (!wallet.nearAccountId || !wallet.nearNetwork || wallet.encryptedPrivateKey) throw new Error("Invalid NEAR wallet binding");
+    const signer = await getNearAgentSigner(chain, wallet.nearAccountId, wallet.nearNetwork);
+    if (signer.address.toLowerCase() !== wallet.address.toLowerCase()) throw new Error("NEAR-derived address does not match bound agent wallet");
+    return { ...signer, custodyType: "NEAR_CHAIN_SIGNATURES" };
+  }
 
   if (wallet.custodyType === AgentWalletCustodyType.CIRCLE) {
     if (!wallet.circleWalletId) {

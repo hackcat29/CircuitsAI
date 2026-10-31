@@ -1,3 +1,6 @@
+import { prisma as nearModelPrisma, type Chain as NearModelChain } from "@clawdhq/social-db";
+import { privateInference } from "@clawdhq/near";
+import { prisma as nearEvidencePrisma } from "@clawdhq/custody-db";
 import { generateText, generateObject, jsonSchema, dynamicTool, stepCountIs, type LanguageModel, type JSONSchema7, type ToolSet } from "ai";
 import { z } from "zod";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
@@ -91,6 +94,8 @@ function byokModelId(provider: "ANTHROPIC" | "OPENAI" | "GEMINI", foundationMode
 
 function resolveModel(llmKey: ResolvedLlmKey, foundationModel: string): LanguageModel {
   switch (llmKey.provider) {
+    case LlmProvider.NEAR_AI:
+      throw new Error("NEAR AI uses verified private inference, never an unverified fallback");
     case LlmProvider.ANTHROPIC:
       return createAnthropic({ apiKey: llmKey.apiKey })(byokModelId("ANTHROPIC", foundationModel));
     case LlmProvider.OPENAI:
@@ -109,13 +114,17 @@ export interface ResolvedLlmKey {
   apiKey: string;
 }
 
-export async function resolveLlmKey(chain: Chain, agentChainId: string, llmBilling: LlmBilling): Promise<ResolvedLlmKey> {
+export async function resolveLlmKey(chain: Chain, agentChainId: string, llmBilling: LlmBilling, foundationModel?: string): Promise<ResolvedLlmKey> {
   if (llmBilling === LlmBilling.BYO_KEY) {
     const key = await getDecryptedAgentLlmKey(chain, agentChainId);
     if (!key) throw new Error(`Agent ${chain}:${agentChainId} is configured for BYO_KEY billing but has no active AgentLlmKey stored.`);
     return key;
   }
 
+  const selectedModel = foundationModel ?? (await nearModelPrisma.cognitiveLayer.findUnique({ where: { chain_agentChainId: { chain: chain as NearModelChain, agentChainId } }, select: { foundationModel: true } }))?.foundationModel;
+  if (selectedModel === "near-ai-private" || process.env.HOSTED_RUNTIME_PLATFORM_PROVIDER === "NEAR_AI") {
+    return { provider: LlmProvider.NEAR_AI, apiKey: process.env.NEAR_AI_API_KEY ?? "" };
+  }
   const apiKey = process.env.HOSTED_RUNTIME_PLATFORM_OPENROUTER_KEY || process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("No platform OpenRouter key configured (HOSTED_RUNTIME_PLATFORM_OPENROUTER_KEY or OPENROUTER_API_KEY) — set one before enabling platform-billed hosted agents.");
   return { provider: LlmProvider.OPENROUTER, apiKey };
@@ -201,10 +210,10 @@ function buildSystemPrompt(persona: AgentPersonaContext): string {
     ``,
     `=== AUTONOMOUS CAPABILITIES (INSIDE & OUTSIDE THE PROTOCOL) ===`,
     `1. Social Alpha & Publishing: You autonomously broadcast trading insights, philosophical perspectives, and market commentary to the ClawdHQ Social feed during background ticks.`,
-    `2. Degen & Trading Operations:`,
+    `2. Agent commerce and escrow:`,
     `   - 50x Perpetual Futures on CircuitsPerpVault (ARC-PERP, BTC-PERP, ETH-PERP, SOL-PERP).`,
     `   - Binary Prediction Markets on CircuitsPredictionVault (Pyth/UMA oracle settlement).`,
-    `   - Memecoin Launchpad Bonding Curves & DEX graduation on ClawdHQ Launchpad.`,
+    `   - Policy-limited job escrow and service payments.`,
     `3. Marketplace & Sub-agent Delegation: You can post job escrows to hire specialized agents or perform bounties as a provider.`,
     `4. External Tools & World Knowledge: Beyond on-chain actions, you have advanced technical knowledge across software engineering, DeFi algorithms, cryptography, web automation, data APIs, and general reasoning. You can invoke external skills and Model Context Protocol (MCP) servers.`,
     ``,
@@ -301,6 +310,10 @@ export async function generateAgentReply(
   skills: ResolvedSkill[] = [],
   options?: { skipCreditAssertion?: boolean },
 ): Promise<string> {
+  if (llmKey.provider === LlmProvider.NEAR_AI || persona.foundationModel === "near-ai-private" || process.env.HOSTED_RUNTIME_PLATFORM_PROVIDER === "NEAR_AI") {
+    const result = await runVerifiedNearInference(chain, agentChainId, llmBilling, LlmCallKind.REACTIVE_REPLY, persona.foundationModel, process.env.NEAR_AI_API_KEY ?? "", `${buildSystemPrompt(persona)}\n\nUser: ${message}`);
+    return result.content;
+  }
   if (llmBilling === LlmBilling.PLATFORM && !options?.skipCreditAssertion) {
     try {
       await assertAgentLlmCreditCovers(chain, agentChainId, LlmCallKind.REACTIVE_REPLY, persona.foundationModel);
@@ -573,7 +586,6 @@ export async function decideAgentAction(
     await assertAgentLlmCreditCovers(chain, agentChainId, LlmCallKind.TICK_DECISION, persona.foundationModel);
   }
 
-  const model = resolveModel(llmKey, persona.foundationModel);
   const skillsPrompt = await describeAvailableSkills(skills);
   const knowledgePrompt = describeAvailableKnowledge(knowledgeCandidates);
   const system =
@@ -610,6 +622,12 @@ export async function decideAgentAction(
       return parsed.success ? { success: true, value: parsed.data } : { success: false, error: parsed.error };
     },
   });
+  if (llmKey.provider === LlmProvider.NEAR_AI || persona.foundationModel === "near-ai-private" || process.env.HOSTED_RUNTIME_PLATFORM_PROVIDER === "NEAR_AI") {
+    const result = await runVerifiedNearInference(chain, agentChainId, llmBilling, LlmCallKind.TICK_DECISION, persona.foundationModel, process.env.NEAR_AI_API_KEY ?? "", `${system}\n\n${recentActivity || "No notable recent activity."}`);
+    const text = result.content.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
+    return AgentActionSchema.parse(JSON.parse(text));
+  }
+  const model = resolveModel(llmKey, persona.foundationModel);
   const executeModel = async (targetModel: LanguageModel): Promise<{ action: AgentAction; modelUsage: any }> => {
     try {
       const res = await generateObject({ model: targetModel, schema, system, prompt: recentActivity || "No notable recent activity." });
@@ -685,4 +703,12 @@ export function generateCognitiveSynthesisAction(
   return {
     kind: "NO_ACTION",
   };
+}
+
+async function runVerifiedNearInference(chain: Chain, agentChainId: string, billing: LlmBilling, kind: LlmCallKind, foundationModel: string, apiKey: string, prompt: string) {
+  if (billing === LlmBilling.PLATFORM) await assertAgentLlmCreditCovers(chain, agentChainId, kind, foundationModel);
+  const result = await privateInference({ prompt, apiKey, model: process.env.NEAR_AI_MODEL });
+  if (billing === LlmBilling.PLATFORM) await chargeAgentLlmCredit(chain, agentChainId, kind, LlmProvider.NEAR_AI, result, foundationModel);
+  await nearEvidencePrisma.nearInferenceEvidence.create({ data: { chain, agentChainId, completionId: result.evidence.completionId, model: result.evidence.model, signatureKind: result.evidence.signatureKind, evidenceJson: JSON.stringify({ attestation: result.evidence.attestation, signature: result.evidence.signature }), verified: result.evidence.verified, verifiedAt: new Date(result.evidence.verifiedAt) } });
+  return result;
 }

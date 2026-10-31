@@ -20,3 +20,8 @@ coverage/
 *.pem
 *.key
 *.p12
+
+# Local verification outputs and tool links
+near-demo-state/
+.vercel/
+*.tsbuildinfo

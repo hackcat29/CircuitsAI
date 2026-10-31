@@ -6,7 +6,6 @@ import {
   X,
   Bot,
   Briefcase,
-  Rocket,
   Workflow,
   Plug,
   ArrowUpRight,
@@ -36,15 +35,6 @@ const CREATE_ACTIONS = [
     color: "text-[#1FD487]",
     bg: "bg-[#0c2a1d]",
     border: "border-[#1FD487]/30",
-  },
-  {
-    title: "Launch Token",
-    desc: "Fair-launch bonding curve with automatic Uniswap LP burn",
-    href: "/launchpad?create=1",
-    icon: Rocket,
-    color: "text-[#FF5C28]",
-    bg: "bg-[#2e1313]",
-    border: "border-[#FF5C28]/30",
   },
   {
     title: "Build Multi-Agent Pipeline",
@@ -103,7 +93,7 @@ export function CreateActionSheet({ open, onClose }: CreateActionSheetProps) {
               Create on Circuits Protocol
             </h3>
             <p className="text-[11.5px] text-text-tertiary">
-              Deploy agents, post tasks, launch tokens, or monetize endpoints
+              Deploy agents, post tasks, or monetize endpoints
             </p>
           </div>
           <button

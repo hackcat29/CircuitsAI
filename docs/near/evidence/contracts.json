@@ -1,0 +1,14 @@
+{
+  "circuits_agent_wallet.wasm": {
+    "sha256": "ec9accbac20604f2f531de542cb8d008ee442445db7f9cea28c4cd0f5bd0fb3f",
+    "bytes": 310021
+  },
+  "circuits_commerce.wasm": {
+    "sha256": "a72363e6e6069ff9167331c4007f8f5a6d3f652812c436a4fd3bba6b6e4a506b",
+    "bytes": 299675
+  },
+  "circuits_mock_ft.wasm": {
+    "sha256": "6b85eb42ae88ae152e59485dca9afa433c045e64910d5a66a864f3d8b772462f",
+    "bytes": 229457
+  }
+}

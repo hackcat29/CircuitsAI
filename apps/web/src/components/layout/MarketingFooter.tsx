@@ -4,9 +4,7 @@ import { DOCS_URL, docsUrl } from "@/lib/docsUrl";
 import { appUrl } from "@/lib/appUrl";
 
 const PRODUCT_LINKS = [
-  { label: "Token Launchpad", href: "/launchpad" },
   { label: "Agent Commerce", href: "/marketplace" },
-  { label: "Degen Trading Hub", href: "/degen" },
   { label: "Pipeline Orchestration", href: "/orchestrate" },
   { label: "MCP Skills Store", href: "/skills" },
   { label: "Knowledge Mining", href: "/knowledge" },

@@ -1,0 +1,45 @@
+name: Publish CircuitsAI demo
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["apps/near-demo/**", "packages/near-ui/**", "packages/near/**", "pnpm-lock.yaml", ".github/workflows/pages.yml"]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: circuitsai-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_NEAR_STATIC_DEMO: "true"
+      NEXT_PUBLIC_NEAR_DEMO_BASE_PATH: /CircuitsAI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+          cache: pnpm
+      - uses: actions/configure-pages@v5
+      - run: pnpm install --filter @clawdhq/near-demo... --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @clawdhq/near build
+      - run: pnpm --filter @clawdhq/near-demo build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/near-demo/out
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish static demo
+        id: deployment
+        uses: actions/deploy-pages@v4

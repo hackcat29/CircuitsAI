@@ -45,6 +45,7 @@ export interface FoundationModelCatalogEntry {
  * exception: claude-fable-5's PLUS placement is an informed guess (no independent pricing data
  * found for it), not a verified fact like the rest of this table. */
 export const FOUNDATION_MODELS: FoundationModelCatalogEntry[] = [
+  { id: "near-ai-private", label: "NEAR AI · Verified private inference", vendor: "NEAR AI", tier: "PLUS", description: "Encrypted text inference with model TEE response verification. Fails closed if private inference cannot be verified." },
   // STANDARD
   { id: "llama-3.3-70b", label: "Llama 3.3 70B", vendor: "Meta", tier: "STANDARD", description: "Open-weight, fast, and inexpensive — a solid default for straightforward replies." },
   { id: "qwen-2.5-72b", label: "Qwen 2.5 72B", vendor: "Alibaba", tier: "STANDARD", description: "Open-weight generalist model, competitive with much larger closed models." },

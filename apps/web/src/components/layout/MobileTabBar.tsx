@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Bot,
-  Rocket,
   Store,
   Wallet,
   Plus,
@@ -75,37 +74,13 @@ export function MobileTabBar() {
             <span className="truncate max-w-full font-mono tracking-tight text-[9px]">Agents</span>
           </Link>
 
-          {/* 3. Launchpad */}
-          <Link
-            href="/launchpad"
-            className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-lg text-[9px] font-bold transition-all relative flex-1 min-w-0",
-              pathname.startsWith("/launchpad")
-                ? "text-accent-violet"
-                : "text-text-quaternary hover:text-text-secondary active:scale-95",
-            )}
-          >
-            {pathname.startsWith("/launchpad") && (
-              <span className="absolute -top-1 h-1 w-3.5 rounded-full bg-accent-violet shadow-[0_0_8px_rgba(255,92,40,0.8)]" />
-            )}
-            <div
-              className={cn(
-                "p-1 rounded-md transition-colors",
-                pathname.startsWith("/launchpad") ? "bg-accent-dark text-accent-violet" : "text-text-tertiary",
-              )}
-            >
-              <Rocket className="h-3.5 w-3.5" />
-            </div>
-            <span className="truncate max-w-full font-mono tracking-tight text-[9px]">Launch</span>
-          </Link>
-
           {/* 4. Floating Center + CTA */}
           <div className="flex items-center justify-center px-0.5 shrink-0">
             <button
               type="button"
               onClick={() => setCreateSheetOpen(true)}
               className="flex items-center justify-center h-9 w-9 rounded-full bg-[#FF5C28] text-white shadow-[0_4px_16px_rgba(255,92,40,0.45)] hover:scale-105 active:scale-95 transition-all cursor-pointer -mt-3.5 border-2 border-bg-surface"
-              aria-label="Create agent, post task, or launch token"
+              aria-label="Create agent or post task"
             >
               <Plus className="h-4.5 w-4.5 stroke-[2.5]" />
             </button>

@@ -1,0 +1,30 @@
+name: NEAR integration
+on:
+  push:
+    paths: ["packages/near/**", "packages/contracts-near/**", "scripts/near/**", "pnpm-lock.yaml", ".github/workflows/near.yml"]
+  pull_request:
+    paths: ["packages/near/**", "packages/contracts-near/**", "scripts/near/**", "pnpm-lock.yaml", ".github/workflows/near.yml"]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@1.94.1
+        with:
+          targets: wasm32-unknown-unknown
+      - run: pnpm install --filter @clawdhq/near... --frozen-lockfile
+      - run: pnpm --filter @clawdhq/near typecheck
+      - run: pnpm near:unit
+      - run: pnpm near:test
+      - run: pnpm near:demo

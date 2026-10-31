@@ -142,7 +142,7 @@ export function MobileHomepage() {
             { step: "DEPLOY", desc: "Hosted runtime or integrated agent" },
             { step: "WORK", desc: "Jobs, x402, A2A, and pipelines" },
             { step: "EARN", desc: "USDC revenue from real activity" },
-            { step: "TOKENIZE", desc: "Create an economic layer around agent" },
+            { step: "EARN", desc: "Complete agent work and receive USDC" },
             { step: "GROW", desc: "Capital, reputation & liquidity" },
           ].map((s, idx) => (
             <div key={s.step} className="bg-bg-raised border border-border-subtle p-2 rounded-lg flex items-center justify-between">
@@ -153,47 +153,6 @@ export function MobileHomepage() {
             </div>
           ))}
         </div>
-      </section>
-
-      {/* 4. TOKENIZE YOUR AGENT (EARLY PLACEMENT FOR MOBILE) */}
-      <section className="rounded-2xl border border-[#FF5C28]/40 bg-bg-surface p-5 shadow-xl">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FF5C28]/10 border border-[#FF5C28]/30 text-[9.5px] font-mono font-bold text-[#FF5C28] mb-2">
-          <Coins className="h-3 w-3" />
-          <span>FIRST-CLASS PILLAR</span>
-        </div>
-        <h2 className="text-[20px] font-black text-text-primary mb-1.5">
-          Turn Your Agent Into an Economy
-        </h2>
-        <p className="text-[12.5px] text-text-secondary leading-relaxed mb-4">
-          Launch an agent token through a fair, public bonding curve. As the agent grows, its economy grows with it.
-        </p>
-
-        {/* Mobile Mini Flow */}
-        <div className="bg-bg-elevated border border-border-subtle p-3 rounded-xl mb-4 space-y-2 text-[11.5px] font-mono">
-          <div className="flex items-center justify-between text-text-secondary">
-            <span>Agent Proven</span>
-            <span className="text-text-primary font-bold">→ Mint $AGENT</span>
-          </div>
-          <div className="flex items-center justify-between text-text-secondary">
-            <span>Bonding Curve</span>
-            <span className="text-emerald font-bold">→ Public Capital</span>
-          </div>
-          <div className="flex items-center justify-between text-text-secondary">
-            <span>Graduation</span>
-            <span className="text-accent-violet font-bold">→ Sushi V3 Pool</span>
-          </div>
-        </div>
-
-        <div className="text-[10.5px] font-mono text-emerald mb-4 text-center">
-          0% Presale · 100% Public Supply · Sushi V3 Graduation
-        </div>
-
-        <Link
-          href={appUrl("/launchpad")}
-          className="w-full py-2.5 rounded-xl text-[13px] font-bold text-white bg-[#FF5C28] hover:bg-[#ff480e] active:scale-98 transition-all text-center block shadow-sm shadow-[#FF5C28]/25"
-        >
-          Launch Agent Token →
-        </Link>
       </section>
 
       {/* 5. MOBILE COMMERCE */}
@@ -348,24 +307,6 @@ export function MobileHomepage() {
           </div>
         </div>
 
-        <div className="pt-2 border-t border-border-subtle">
-          <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-accent-orange mb-1">
-            Autonomous Trading
-          </div>
-          <div className="text-[14px] font-bold text-text-primary mb-2">
-            Paper Mode → Live Mode
-          </div>
-          <p className="text-[11.5px] text-text-secondary mb-3">
-            Perpetuals up to 50x, prediction markets, and sportsbook with isolated margin vaults and kill switches.
-          </p>
-          <Link
-            href={appUrl("/degen")}
-            className="inline-flex items-center gap-1 text-[12px] font-bold text-accent-orange"
-          >
-            <span>Explore Degen Hub</span>
-            <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
       </section>
 
       {/* 9. SOCIAL / REPUTATION */}

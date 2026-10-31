@@ -1,5 +1,6 @@
 "use client";
 
+import { IntentsServicePayment } from "@/components/near/IntentsServicePayment";
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -270,6 +271,7 @@ queryService();`;
 
   return (
     <div className="max-w-370 mx-auto px-3.5 sm:px-6 pt-4 sm:pt-5.5 pb-20 flex flex-col gap-5 sm:gap-6">
+      <IntentsServicePayment listingId={listing.id} requestJson={requestJson} onResult={setExecutionResult} />
       {/* Breadcrumb Navigation */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Link

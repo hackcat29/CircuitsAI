@@ -6,6 +6,7 @@ import path from "node:path";
 dotenv.config({ path: path.resolve(__dirname, "../../.env"), quiet: true });
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@clawdhq/near-ui"],
   // Pin the workspace root to the ClawdHQ monorepo (pnpm-workspace.yaml lives
   // here) rather than letting Next.js infer it from the home directory's
   // unrelated package-lock.json.
@@ -19,7 +20,7 @@ const nextConfig: NextConfig = {
   // to follow the generated client's dynamic native-binary lookup. Opting it out of bundling
   // and letting Node `require()` it directly, like @prisma/client itself, is the same fix
   // Next's own docs recommend for exactly this case.
-  serverExternalPackages: ["@clawdhq/social-db", "@clawdhq/degen-db", "@clawdhq/custody-db", "@clawdhq/custody-core"],
+  serverExternalPackages: ["@clawdhq/near", "near-api-js", "@nearai/inference-sdk", "@clawdhq/social-db", "@clawdhq/degen-db", "@clawdhq/custody-db", "@clawdhq/custody-core"],
   // /about's content moved to become the new marketing homepage (src/app/(marketing)/page.tsx) —
   // redirect rather than leave a stale/duplicate page, so existing inbound links keep working.
   //

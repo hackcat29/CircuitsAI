@@ -1,0 +1,46 @@
+{
+  "name": "@clawdhq/near",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./wallet": {
+      "types": "./dist/wallet-plan.d.ts",
+      "import": "./dist/wallet-plan.js",
+      "require": "./dist/wallet-plan.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/wallet-plan.ts --format esm,cjs --dts --external near-api-js --external @nearai/inference-sdk/node",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:sandbox": "tsx test/sandbox.ts",
+    "demo": "tsx src/demo.ts"
+  },
+  "dependencies": {
+    "near-api-js": "7.4.0",
+    "@nearai/inference-sdk": "0.2.1",
+    "viem": "^2.53.1",
+    "bs58": "^6.0.0",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4",
+    "near-sandbox": "0.3.4"
+  },
+  "engines": {
+    "node": ">=24.22.1"
+  }
+}

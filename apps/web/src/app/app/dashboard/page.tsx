@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import {
   DashboardHeroHeader,
   MyAgentsFleetGrid,
-  TrendingLaunchesDashboardCard,
   NeedsAttentionCard,
   AdaptiveQuickActions,
   AgentTerminalShowcaseCard,
@@ -65,7 +64,7 @@ export default function DashboardPage() {
         <MyAgentsFleetGrid />
 
         {/* 2. Trending Launchpad Tokens (Top 5 Listing Mode) */}
-        <TrendingLaunchesDashboardCard />
+
 
         {/* 3. Needs Attention */}
         <NeedsAttentionCard />
@@ -97,7 +96,7 @@ export default function DashboardPage() {
             <MyAgentsFleetGrid />
           </div>
           <div className="flex flex-col h-full">
-            <TrendingLaunchesDashboardCard />
+    
           </div>
         </div>
 

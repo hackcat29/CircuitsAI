@@ -30,7 +30,7 @@ export function useLaunchpadTrades(address: string | undefined) {
       if (!res.ok) throw new Error("Failed to load trade history.");
       return res.json();
     },
-    enabled: Boolean(address),
+    enabled: false,
   });
 
   return {
@@ -55,7 +55,7 @@ export function useLaunchTrades(launchChainId?: string | undefined) {
       if (!res.ok) throw new Error("Failed to load trades.");
       return res.json();
     },
-    enabled: true,
+    enabled: false,
     refetchInterval: 10_000,
   });
 

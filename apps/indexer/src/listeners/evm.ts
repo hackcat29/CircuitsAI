@@ -787,7 +787,8 @@ async function resolveGraduatedPairs(publicClient: PublicClient, config: EvmChai
 }
 
 async function processBatch(publicClient: PublicClient, config: EvmChainIndexerConfig, fromBlock: bigint, toBlock: bigint): Promise<void> {
-  const pairs = await resolveGraduatedPairs(publicClient, config);
+  // Launchpad and token-swap indexing is retired; historical rows are retained.
+  const pairs: Awaited<ReturnType<typeof resolveGraduatedPairs>> = [];
   for (const pair of pairs) {
     const key = `${config.prismaChain}:${pair.launchChainId}`;
     if (!backfilledPairKeys.has(key)) {
@@ -804,7 +805,7 @@ async function processBatch(publicClient: PublicClient, config: EvmChainIndexerC
       ? publicClient.getLogs({ address: config.crossChainIdentityAddress, fromBlock, toBlock })
       : Promise.resolve([]),
     config.governorAddress ? publicClient.getLogs({ address: config.governorAddress, fromBlock, toBlock }) : Promise.resolve([]),
-    publicClient.getLogs({ address: config.launchpadAddress, fromBlock, toBlock }),
+    Promise.resolve([]),
     pairAddresses.length > 0 ? publicClient.getLogs({ address: pairAddresses, fromBlock, toBlock }) : Promise.resolve([]),
   ]);
 

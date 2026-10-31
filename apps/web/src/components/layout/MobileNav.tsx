@@ -7,7 +7,6 @@ import {
   X,
   ArrowUpRight,
   Plus,
-  Rocket,
   User,
   ExternalLink,
   BookOpen,
@@ -18,7 +17,6 @@ import {
   BUILD_ITEMS,
   GOVERNANCE_ITEMS,
   COMMUNITY_ITEMS,
-  DEGEN_ITEMS,
   type NavItem,
 } from "@/lib/nav";
 import { DOCS_URL } from "@/lib/docsUrl";
@@ -28,7 +26,6 @@ import { ChainSelector } from "./ChainSelector";
 
 const GROUPS = [
   { label: "Commerce & Services", items: COMMERCE_ITEMS },
-  { label: "Degen Arena", items: DEGEN_ITEMS },
   { label: "Build & Deploy", items: BUILD_ITEMS },
   { label: "Governance & Protocol", items: GOVERNANCE_ITEMS },
   { label: "Community & Rankings", items: COMMUNITY_ITEMS },
@@ -93,15 +90,6 @@ export function MobileNav() {
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Register Agent</span>
-            </Link>
-
-            <Link
-              href="/launchpad?create=1"
-              onClick={() => setOpen(false)}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold text-accent-violet bg-accent-dark border border-accent-violet/30 hover:bg-accent-violet hover:text-white active:scale-98 transition-all"
-            >
-              <Rocket className="h-3.5 w-3.5" />
-              <span>Launch Token</span>
             </Link>
           </div>
 

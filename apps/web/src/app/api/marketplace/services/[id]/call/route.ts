@@ -1,3 +1,4 @@
+import { verifyServicePayment } from "@/lib/server/near/servicePayments";
 import { NextResponse } from "next/server";
 import { formatUnits } from "viem";
 import { ServiceListingStatus, prisma } from "@clawdhq/marketplace-db";
@@ -76,18 +77,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const callerAddress = await requireHumanSession();
 
     const body = await request.json().catch(() => null);
-    const txHash = typeof body?.txHash === "string" ? body.txHash.trim() : "";
-    if (!txHash) throw new ApiError(400, "Missing txHash.");
+    let txHash = typeof body?.txHash === "string" ? body.txHash.trim() : "";
+    const intentInvoiceId = typeof body?.intentInvoiceId === "string" ? body.intentInvoiceId : null;
+    if (!txHash && !intentInvoiceId) throw new ApiError(400, "Missing txHash or intentInvoiceId.");
 
     const listing = await prisma.serviceListing.findUnique({ where: { id } });
     if (!listing || listing.status !== ServiceListingStatus.ACTIVE) {
       throw new ApiError(404, "Service not found or not active.");
     }
 
+    if (intentInvoiceId) txHash = await verifyServicePayment(listing, callerAddress, intentInvoiceId);
+
     const existing = await prisma.serviceCall.findUnique({ where: { txHash } });
     if (existing) throw new ApiError(409, "This payment has already been redeemed for a call.");
 
-    const verified = await verifyUsdcTransfer(
+    const verified = Boolean(intentInvoiceId) || await verifyUsdcTransfer(
       listing.chain,
       txHash,
       callerAddress,
@@ -116,6 +120,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       }),
     ]);
 
+    if (intentInvoiceId) await custodyPrisma.nearPaymentIntent.updateMany({ where: { id: intentInvoiceId, redeemedAt: null }, data: { redeemedAt: new Date() } });
     const input = body?.input ?? {};
     let status = 200;
     let responseData: unknown = null;
