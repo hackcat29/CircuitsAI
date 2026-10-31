@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+:root {
+  /* ── Backgrounds ──────────────────────────── */
+  --color-bg-primary: #08090c;
+  --color-bg-surface: #0e1014;
+  --color-bg-elevated: #121419;
+  --color-bg-raised: #191c22;
+  --color-bg-surface3: #21242c;
+  --color-glass: #121419;
+
+  /* ── Borders ──────────────────────────────── */
+  --color-border-subtle: #23262e;
+  --color-border-strong: #2e323c;
+  --color-border-hover: #3a3f4b;
+
+  /* ── Accent – Orange ──────────────────────── */
+  --color-accent-violet: #ff5c28;
+  --color-accent-dark: #3a2014;
+  --color-accent-glow: rgba(255, 92, 40, 0.16);
+
+  /* ── Blue ─────────────────────────────────── */
+  --color-accent-cyan: #3d8bff;
+  --color-accent-cyan-dark: #0f2540;
+
+  /* ── Status ───────────────────────────────── */
+  --color-emerald: #1fd487;
+  --color-emerald-dark: #0c2a1d;
+  --color-amber: #ffb13d;
+  --color-amber-dark: #2e2210;
+  --color-red: #ff4d4d;
+  --color-red-dark: #2e1313;
+  --color-purple: #a78bfa;
+  --color-purple-dark: #221c3a;
+
+  /* ── Chain colors ─────────────────────────── */
+  --color-chain-base: #0052ff;
+  --color-chain-eth: #627eea;
+
+  /* ── Text ─────────────────────────────────── */
+  --color-text-primary: #f4f5f7;
+  --color-text-secondary: #b8bcc6;
+  --color-text-tertiary: #80858f;
+  --color-text-quaternary: #54585f;
+
+  --background: var(--color-bg-primary);
+  --foreground: var(--color-text-primary);
+}
+
+@theme inline {
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-raised: var(--color-bg-raised);
+  --color-bg-surface3: var(--color-bg-surface3);
+  --color-glass: var(--color-glass);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-hover: var(--color-border-hover);
+  --color-accent-violet: var(--color-accent-violet);
+  --color-accent-dark: var(--color-accent-dark);
+  --color-accent-glow: var(--color-accent-glow);
+  --color-accent-cyan: var(--color-accent-cyan);
+  --color-accent-cyan-dark: var(--color-accent-cyan-dark);
+  --color-emerald: var(--color-emerald);
+  --color-emerald-dark: var(--color-emerald-dark);
+  --color-amber: var(--color-amber);
+  --color-amber-dark: var(--color-amber-dark);
+  --color-red: var(--color-red);
+  --color-red-dark: var(--color-red-dark);
+  --color-purple: var(--color-purple);
+  --color-purple-dark: var(--color-purple-dark);
+  --color-chain-base: var(--color-chain-base);
+  --color-chain-eth: var(--color-chain-eth);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-text-quaternary: var(--color-text-quaternary);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+::selection {
+  background: var(--color-accent-violet);
+  color: white;
+}
+
+@keyframes tick {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes puls {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 92, 40, 0.4); }
+  50% { box-shadow: 0 0 16px 4px rgba(255, 92, 40, 0.2); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes typing-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.animate-tick {
+  animation: tick 30s linear infinite;
+  width: max-content;
+}
+.animate-tick:hover {
+  animation-play-state: paused;
+}
+.animate-glow-pulse {
+  animation: glow-pulse 2.4s ease-in-out infinite;
+}
+.animate-puls {
+  animation: puls 1.6s ease infinite;
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-scan-line {
+  animation: scan-line 2s linear infinite;
+}
+.animate-typing-blink {
+  animation: typing-blink 1s step-end infinite;
+}
+
+.circuitsprotocol-wallet-button {
+  height: 2.25rem !important;
+  border-radius: 9999px !important;
+  background: var(--color-bg-raised) !important;
+  border: 1px solid var(--color-border-strong) !important;
+  font-size: 0.75rem !important;
+  font-family: var(--font-geist-mono, monospace) !important;
+  font-weight: 700 !important;
+  padding: 0 0.75rem !important;
+  color: var(--color-text-secondary) !important;
+}
+.circuitsprotocol-wallet-button:hover {
+  border-color: var(--color-border-hover) !important;
+}

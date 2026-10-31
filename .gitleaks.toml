@@ -1,0 +1,18 @@
+title = "Circuits source scan"
+[extend]
+useDefault = true
+
+# Exact code expressions reviewed as false positives; no secret values allowed.
+[[allowlists]]
+regexTarget = "match"
+regexes = [
+  'tokenAmount = args\.amount[01](In|Out);',
+  'token_out: "0x48fc9aFF6C4F395f93B24627715f1ea1482555Cc"',
+  'key: "GraduatedToSushiV3"',
+]
+
+[[rules]]
+id = "evm-private-key-assignment"
+description = "Embedded EVM private key"
+regex = '(?i)(?:privateKey|private_key|secretKey)\s*[:=]\s*["\x27](0x[0-9a-f]{64})["\x27]'
+secretGroup = 1

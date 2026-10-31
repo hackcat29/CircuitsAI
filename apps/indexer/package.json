@@ -1,0 +1,52 @@
+{
+  "name": "@clawdhq/indexer",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Long-running service mirroring on-chain agent-exchange events into the shared Postgres read cache (packages/marketplace-db). Never the source of truth for writes — see packages/marketplace-db/prisma/schema.prisma.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "dev:scheduler": "tsx watch src/scheduler.ts",
+    "dev:hosted-runtime-scheduler": "tsx watch src/hostedRuntimeScheduler.ts",
+    "dev:buyback-scheduler": "tsx watch src/buybackScheduler.ts",
+    "dev:sportystake-reconciliation": "tsx watch src/sportystakeReconciliation.ts",
+    "local-dev:rotate-registrar": "tsx scripts/rotate-local-registrar.ts",
+    "local-dev:rotate-registrar-solana": "tsx scripts/rotate-local-registrar-solana.ts",
+    "local-dev:rotate-registrar-sui": "tsx scripts/rotate-local-registrar-sui.ts",
+    "backfill:agents": "tsx scripts/backfill-agents.ts",
+    "backfill:agent-wallets": "tsx scripts/backfill-agent-wallets.ts",
+    "backfill:launches": "tsx scripts/backfill-launches.ts",
+    "start": "node dist/main.js",
+    "start:scheduler": "node dist/scheduler.js",
+    "start:hosted-runtime-scheduler": "node dist/hostedRuntimeScheduler.js",
+    "start:buyback-scheduler": "node dist/buybackScheduler.js",
+    "start:sportystake-reconciliation": "node dist/sportystakeReconciliation.js",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@clawdhq/custody-core": "workspace:*",
+    "@clawdhq/custody-db": "workspace:*",
+    "@clawdhq/degen-db": "workspace:*",
+    "@clawdhq/hosted-agent-runtime": "workspace:*",
+    "@clawdhq/marketplace-db": "workspace:*",
+    "@clawdhq/sdk": "workspace:*",
+    "@clawdhq/sportystake-sdk": "workspace:*",
+    "@clawdhq/valuation": "workspace:*",
+    "@coral-xyz/anchor": "^0.31.1",
+    "@mysten/sui": "^2.20.1",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4",
+    "dotenv": "^17.4.2",
+    "viem": "^2.53.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

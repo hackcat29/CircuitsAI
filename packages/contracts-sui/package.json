@@ -1,0 +1,13 @@
+{
+  "name": "@clawdhq/contracts-sui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ClawdHQ Move package (registry, marketplace, launchpad) for Sui Testnet",
+  "scripts": {
+    "build": "sui move build --path clawdhq_agent",
+    "test": "sui move test --path clawdhq_agent",
+    "lint": "echo \"no lint configured for Move\"",
+    "typecheck": "echo \"no typecheck for Move\"",
+    "clean": "rm -rf clawdhq_agent/build"
+  }
+}

@@ -1,0 +1,577 @@
+// Off-chain read cache for the agent ownership exchange. This database is never the source
+// of truth for anything that moves money — contracts on each chain are. The indexer
+// (apps/indexer) mirrors on-chain events into these tables so the web app can browse
+// listings, show bid history, and render live auction countdowns without hammering RPCs on
+// every page load. Every state-changing action (list/bid/withdraw/accept/settle) goes
+// directly on-chain from the user's wallet; nothing here is ever trusted to authorize a
+// write back to a contract.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MARKETPLACE_DATABASE_URL")
+}
+
+enum Chain {
+  BSC_TESTNET
+  BASE_SEPOLIA
+  ETH_SEPOLIA
+  ARC_MAINNET
+  ARC_TESTNET
+  MONAD_TESTNET
+  MONAD_MAINNET
+  SOLANA_DEVNET
+  SUI_TESTNET
+}
+
+enum ListingMode {
+  OPEN
+  AUCTION
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+  EXPIRED
+}
+
+model Listing {
+  id              String        @id @default(cuid())
+  chain           Chain
+  /// The on-chain listing id: a uint256 (as a decimal string) on EVM/Solana, an object id on Sui.
+  chainListingId  String
+  /// The on-chain agent id/object id this listing is for — opaque per chain, matches ListingSummary.agentId.
+  agentChainId    String
+  seller          String
+  mode            ListingMode
+  status          ListingStatus
+  fairValueSnapshotUsdc BigInt
+  reservePriceUsdc      BigInt
+  /// Null for Open listings (no expiry).
+  endTime         DateTime?
+  /// Denormalized pointer to the current-highest Bid's chainBidId (Auction only), not a
+  /// Prisma relation — mirrors the on-chain `highestBidId`/`highestBidChainId` field
+  /// directly rather than forcing a strict FK, since "none yet" and cross-chain id shapes
+  /// don't map cleanly onto one.
+  highestBidChainId String?
+  createdAtChain  DateTime
+  updatedAtChain  DateTime
+  /// Last block/slot/checkpoint this row was updated from — informational only, not used
+  /// for cursor resume (see IndexerCursor for that).
+  lastIndexedAt   BigInt?
+
+  bids Bid[]
+
+  @@unique([chain, chainListingId])
+  @@index([chain, status])
+  @@index([agentChainId])
+}
+
+model Bid {
+  id             String   @id @default(cuid())
+  chain          Chain
+  /// Globally unique per chain on EVM/Solana (a protocol-wide counter), but Sui's
+  /// `next_bid_id` is scoped *per Listing* (each listing's own Table starts counting bids
+  /// from 1) — so `chainBidId` alone can collide across two different Sui listings. The
+  /// unique constraint below includes `listingDbId` for exactly that reason; don't drop it
+  /// even though it's redundant for EVM/Solana.
+  chainBidId     String
+  listing        Listing  @relation(fields: [listingDbId], references: [id], onDelete: Cascade)
+  listingDbId    String
+  bidder         String
+  amountUsdc     BigInt
+  active         Boolean
+  createdAtChain DateTime
+
+  @@unique([chain, listingDbId, chainBidId])
+  @@index([listingDbId])
+}
+
+/// Off-chain read cache of ClawdHQCore's on-chain AgentCard — same "never the source of truth,
+/// indexer mirrors chain state" relationship as Listing/GovernanceProposal above. Before this
+/// model existed, apps/web read agent data live from RPC on every page load (see
+/// useRankings/usePortfolio/useMyAgents), which routinely hit Arc Testnet's public RPC's
+/// aggressive rate limit (1 request/second) and silently rendered as "no agents" / "0
+/// contributor points" even when registration had already succeeded on-chain.
+model Agent {
+  id            String    @id @default(cuid())
+  chain         Chain
+  /// The on-chain agentId: a uint256 (as a decimal string), 1-indexed, sequential per chain.
+  agentChainId  String
+  owner         String
+  name          String
+  agentUri      String
+  endpoint      String
+  metadataHash  String
+  supportsX402  Boolean
+  supportsA2A   Boolean
+  supportsMcp   Boolean
+  active        Boolean
+  tier          Int
+  jobsCompleted Int
+  jobsFailed    Int
+  /// USDC, 6 decimals — same micros-bigint convention as Listing.fairValueSnapshotUsdc.
+  usdcRevenue   BigInt
+  reputationBps Int
+  /// Null if the agent has never completed a job (on-chain lastJobAt reads 0), same "0 means
+  /// none" convention as Listing.endTime.
+  lastJobAtChain DateTime?
+  createdAtChain DateTime
+  updatedAtChain DateTime
+  /// Last block this row was updated from — informational only, not used for cursor resume
+  /// (see IndexerCursor for that), same convention as Listing.lastIndexedAt.
+  lastIndexedAt  BigInt?
+
+  @@unique([chain, agentChainId])
+  @@index([chain, owner])
+  @@index([chain, active])
+}
+
+/// Cached copy of @clawdhq/valuation's computeFairValue() output per agent, refreshed by
+/// the indexer on revenue-changing events. Purely a read-optimization: API routes fall back
+/// to computing this live from chain state if no row exists yet, so nothing depends on the
+/// indexer having run.
+model AgentValuationCache {
+  chain          Chain
+  agentChainId   String
+  fairValueUsdc  BigInt
+  formulaVersion String
+  computedAt     DateTime @updatedAt
+
+  @@id([chain, agentChainId])
+}
+
+/// Off-chain-authored scheduling metadata for a launchpad launch — unlike every other model
+/// in this file, this is NOT populated by the indexer from a chain event. The bonding-curve
+/// launchpad contracts have no concept of a scheduled launch date at all; createLaunch always
+/// goes live immediately on-chain (see apps/web/src/hooks/useLaunchpadActions.ts). This table
+/// only gates the app's *own* UI (countdown, hidden buy/sell, hidden from "upcoming"
+/// discovery) — a determined buyer calling the contract directly during the "scheduled"
+/// window isn't blocked. Written by apps/web/src/app/api/exchange/scheduled-launches/route.ts
+/// after verifying the requester is the launch's on-chain creator.
+model ScheduledLaunch {
+  chain         Chain
+  launchChainId String
+  creator       String
+  scheduledAt   DateTime
+  createdAt     DateTime @default(now())
+
+  @@id([chain, launchChainId])
+}
+
+enum ServiceListingStatus {
+  ACTIVE
+  PAUSED
+}
+
+/// A metered, pay-per-call agent service — the thing the AIP Marketplace's "Services" tab
+/// actually needs to be real (previously a bare "Coming Soon" placeholder). Scoped to whichever
+/// EVM chain it's registered on (same per-active-chain convention as Tasks/Subscriptions) —
+/// payment is a plain on-chain USDC transfer from the caller's own connected wallet (Circle-
+/// backed for Google sign-in, same viem WalletClient path every other write in this app already
+/// uses — see useEvmAdapter.ts) straight to the listing owner's wallet, verified server-side by
+/// reading the transaction receipt before a call is honored (see serviceCallVerify.ts) — not a
+/// separate Circle Developer-Controlled-Wallet transfer. `endpoint` can be any plain HTTP JSON
+/// API — unlike the Tasks marketplace's A2A-specific agent-call flow, the underlying service
+/// doesn't need to understand x402 or A2A itself; ClawdHQ's own call route is the thing that
+/// verifies payment before proxying the request through.
+model ServiceListing {
+  id              String               @id @default(cuid())
+  chain           Chain
+  /// The on-chain agent id this service is offered under — ownership verified server-side
+  /// against ClawdHQCore at registration time (see agentOwnerVerify.ts), not trusted from the
+  /// client.
+  agentChainId    String
+  ownerAddress    String
+  name            String
+  description     String
+  endpoint        String
+  /// USDC, 6 decimals — same micros-bigint convention as Listing.fairValueSnapshotUsdc and
+  /// JobSummary.budget elsewhere in this schema, converted to/from Circle's decimal-string
+  /// amount format only at the API boundary (see viem's parseUnits/formatUnits).
+  priceUsdcMicros BigInt
+  status          ServiceListingStatus @default(ACTIVE)
+  callCount       Int                  @default(0)
+  /// Spam-prevention listing fee — the on-chain USDC transfer (on `chain`, same field above)
+  /// that paid it. Null only when SERVICE_LISTING_FEE_USDC is unset/zero (fee disabled), same
+  /// "0 means free" convention as the on-chain registrationFee/launchFee. Server-verified (see
+  /// listingFeeVerify.ts) before this row is ever created; @unique (nulls excluded from the
+  /// constraint by Postgres) so the same payment can't back two different listings.
+  feeTxHash       String?              @unique
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  calls ServiceCall[]
+
+  @@index([chain, status])
+  @@index([agentChainId])
+}
+
+/// One paid call against a ServiceListing — an audit ledger in the same spirit as
+/// custody-db's PaymentPull, but keyed on a real on-chain `txHash` rather than the custom
+/// facilitator's idempotencyKey. The unique constraint on `txHash` is the actual replay guard:
+/// a caller can never redeem the same payment transaction for a second call. Written only once
+/// the transfer has been verified on-chain (see serviceCallVerify.ts) — there's no refund path
+/// if the proxied call to `endpoint` then fails or returns garbage, since payment is already
+/// final on-chain by that point.
+model ServiceCall {
+  id              String         @id @default(cuid())
+  listing         ServiceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId       String
+  callerAddress   String
+  priceUsdcMicros BigInt
+  txHash          String         @unique
+  createdAt       DateTime       @default(now())
+
+  @@index([listingId])
+}
+
+/// Off-chain cache of a job's plaintext task description, keyed by the sha256 hash the
+/// contracts store on-chain in place of the real text (see ClawdHQCore.sol's `taskHash` and
+/// apps/web/src/lib/hash.ts's doc comment — there's no IPFS pinning wired up, so this is the
+/// closest thing to a resolvable pointer). Content-addressed and chain-agnostic: whoever
+/// already knows a taskHash (the employer, right after `postJob`) writes it once; whoever
+/// only has the on-chain hash (an agent runtime deciding whether to work a job) reads it back.
+/// Never a trust anchor on its own — every write is verified server-side
+/// (sha256(description) must equal taskHash) and every reader is expected to re-verify before
+/// acting on the content, same as the write already did.
+model TaskDescription {
+  taskHash    String   @id
+  description String
+  createdAt   DateTime @default(now())
+}
+
+/// Same shape and reasoning as TaskDescription above, for agent registration's `description`
+/// field: `registerAgent`/`updateAgentMetadata` only ever put its sha256 (`metadataHash`) on
+/// -chain, and the plaintext an owner typed at registration time was previously discarded the
+/// moment the tx was signed — nothing stored it, nothing displayed it. This is the same
+/// content-addressed, chain-agnostic, verified-on-write cache pattern: whoever knows the
+/// plaintext (the owner, right after registering) writes it once; whoever only has the on-chain
+/// hash (the agent detail page, rendering `agent.metadataHash`) reads it back. Never a trust
+/// anchor on its own — every write is verified server-side (sha256(description) must equal
+/// metadataHash) and every reader is expected to treat a cache miss as "no description available
+/// yet," not as evidence the agent has none.
+model AgentDescription {
+  metadataHash String   @id
+  description  String
+  createdAt    DateTime @default(now())
+}
+
+/// Per-chain resume point so the indexer can restart without missing or double-processing
+/// events. Exactly one of lastBlock/lastSlot/lastEventCursor is meaningful, depending on chain.
+model IndexerCursor {
+  chain     Chain    @id
+  lastBlock BigInt?
+  /// Solana has no bounded-range account query, so its listener does a full resync every
+  /// cycle instead of an incremental one — this is informational (last slot observed), not
+  /// used to resume a gap.
+  lastSlot  BigInt?
+  /// Sui's `queryEvents` pages by an opaque `{txDigest, eventSeq}` cursor, not a block/slot
+  /// number — JSON-encoded here since it doesn't fit a BigInt. (Superseded the originally
+  /// planned `lastCheckpoint: BigInt` field once the actual cursor shape was implemented;
+  /// Sui's event API has no simpler numeric resume point to page by.)
+  lastEventCursor String?
+  updatedAt DateTime @updatedAt
+}
+
+enum CrossChainRelayStatus {
+  PENDING
+  COMPLETE
+  FAILED
+}
+
+/// Tracks one ClawdHQCrossChainIdentity `registerLink` transaction's CCTP relay all the way
+/// through: the indexer inserts a PENDING row the moment it sees the source chain's
+/// `LinkRegistered` event, then a separate relay loop polls Circle's Iris API for the
+/// attestation(s) and submits `MessageTransmitterV2.receiveMessage` on each destination chain.
+/// Tracked at the transaction level, not per-destination-message: a single `registerLink` call
+/// can fan out to multiple peer chains in one transaction, and Iris's
+/// `GET /v2/messages/{sourceDomain}?transactionHash=...` already returns every message for that
+/// transaction in one response, so there is no need for a finer-grained row per message.
+model CrossChainRelay {
+  id           String                @id @default(cuid())
+  sourceChain  Chain
+  sourceTxHash String
+  status       CrossChainRelayStatus @default(PENDING)
+  /// Bumped on every processing attempt that doesn't end in COMPLETE; used to give up (mark
+  /// FAILED) after too many tries rather than retrying a broken case forever. Not bumped by a
+  /// benign "Iris hasn't indexed the transaction yet" (404) outcome, only by a real error
+  /// during message/attestation handling or relay submission.
+  attempts     Int                   @default(0)
+  lastError    String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@unique([sourceChain, sourceTxHash])
+  @@index([status])
+}
+
+enum ProposalCategory {
+  PARAMETERS
+  TREASURY
+  UPGRADE
+  SKILL
+  OTHER
+}
+
+enum ProposalState {
+  ACTIVE
+  SUCCEEDED
+  DEFEATED
+  QUORUM_NOT_MET
+  CANCELED
+  EXECUTED
+}
+
+/// Off-chain read cache for ClawdHQGovernor — same "never the source of truth" relationship
+/// to on-chain state as Listing/Bid above. Every write (createProposal/vote/execute) goes
+/// directly on-chain from the caller's own wallet via the SDK; the indexer mirrors
+/// ProposalCreated/VoteCast/ProposalCanceled/ProposalExecuted events into these tables purely
+/// so the web app can browse proposals and render live quorum/vote bars without hammering RPCs
+/// on every page load.
+model GovernanceProposal {
+  id                   String           @id @default(cuid())
+  chain                Chain
+  /// The on-chain proposal id: a uint256 (as a decimal string), 1-indexed.
+  chainProposalId      String
+  proposer             String
+  /// The on-chain agent id the proposal was submitted under — see ClawdHQGovernor.sol's NatSpec
+  /// on why identity here is per-agent, not per-wallet.
+  proposerAgentChainId String
+  category             ProposalCategory
+  title                String
+  description          String
+  state                ProposalState
+  startTime            DateTime
+  endTime              DateTime
+  /// Absolute USDC-bond-weighted-vote target (6dp) — not a percentage. Same for votesFor/
+  /// votesAgainst below.
+  quorumRequired       BigInt
+  votesFor             BigInt
+  votesAgainst         BigInt
+  createdAtChain       DateTime
+  updatedAtChain       DateTime
+  /// Last block this row was updated from — informational only, not used for cursor resume
+  /// (see IndexerCursor for that), same convention as Listing.lastIndexedAt.
+  lastIndexedAt        BigInt?
+
+  votes GovernanceVote[]
+
+  @@unique([chain, chainProposalId])
+  @@index([chain, state])
+  @@index([proposerAgentChainId])
+}
+
+model GovernanceVote {
+  id                String             @id @default(cuid())
+  chain             Chain
+  proposal          GovernanceProposal @relation(fields: [proposalDbId], references: [id], onDelete: Cascade)
+  proposalDbId       String
+  /// The on-chain agent id the vote was cast under — one vote slot per (proposal, agent),
+  /// matching ClawdHQGovernor.sol's `hasVotedAgent` mapping.
+  voterAgentChainId String
+  voter             String
+  support           Boolean
+  /// USDC-bond-weighted, 6dp — the agent's `ClawdHQStaking.bondOf` reading at vote-cast time.
+  weight            BigInt
+  createdAtChain    DateTime
+
+  @@unique([chain, proposalDbId, voterAgentChainId])
+  @@index([proposalDbId])
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+// Matches ClawdHQLaunchpad.sol's BuybackInterval enum ordering exactly (Solidity enums compile
+// to a plain uint8) — see apps/indexer's toBuybackInterval.
+enum LaunchBuybackInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+/// Off-chain read cache of ClawdHQLaunchpad's on-chain AgentLaunch struct — same "never the
+/// source of truth, indexer mirrors chain state" relationship as Agent/Listing above. Closes
+/// the gap LaunchTrade's and LaunchMilestone's own doc comments used to flag ("no Launch model
+/// exists ... useLaunches.ts reads graduation live from the contract client-side instead") —
+/// this is what makes a trending/gainers/just-graduated sortable list possible without
+/// iterating every launchId over live RPC on each page load, the same RPC-rate-limit problem
+/// the Agent cache above was built to fix.
+model Launch {
+  id                  String                @id @default(cuid())
+  chain               Chain
+  launchChainId       String
+  agentChainId        String
+  token               String
+  name                String
+  symbol              String
+  creator             String
+  /// 18-decimal raw AgentToken units (TOTAL_AGENT_TOKEN_SUPPLY = 1e9 whole tokens = 1e27 raw)
+  /// — a plain BigInt/BIGINT column overflows here (Postgres bigint tops out at ~9.22e18, far
+  /// below 1e27), same reasoning as LaunchTrade.tokenAmount below. Decimal(78,0) comfortably
+  /// covers any uint256 value; always a whole integer (0 fractional digits) since this is a
+  /// raw on-chain amount, never a true decimal quantity.
+  totalSupply         Decimal @db.Decimal(78, 0)
+  usdcRaised          BigInt
+  /// Same 18-decimal-raw-units overflow risk as totalSupply above.
+  tokensSold          Decimal @db.Decimal(78, 0)
+  graduationThreshold BigInt
+  /// Deprecated — the v3 constant-product curve's initialVirtualUsdcReserve superseded these
+  /// (see ClawdHQLaunchpad.sol's contract-level doc comment). Always 0 for a launch created
+  /// after that upgrade; kept only because a launch created before it still has real values here.
+  bondingBasePrice    BigInt
+  bondingSlope        BigInt
+  /// USDC (6dec), fixed at createLaunch time (or migrated in for a pre-v3 launch) — the starting
+  /// virtual reserve for the constant-product curve. FDV at zero tokens sold equals this value
+  /// exactly (see lib/server/launchStats.ts). 0 only for a pre-v3 launch that hasn't been
+  /// migrated on-chain yet.
+  initialVirtualUsdcReserve BigInt @default(0)
+  /// Deprecated — buybacks are now funded directly from the Agent Operating Treasury
+  buybackPoolUsdc     BigInt @default(0)
+  buybackInterval     LaunchBuybackInterval
+  /// Percentage of Agent Operating Treasury to spend per buyback (basis points, e.g. 2000 = 20%)
+  buybackBps          Int @default(2000)
+  nextBuybackAt       DateTime
+  /// Set at createLaunch time from the creator's optional launchAt param — buyTokens/sellTokens
+  /// enforce it on-chain (LaunchNotStarted), this is just a mirror for the UI to gate the Buy/Sell
+  /// widget and show a real "Scheduled" status without a live RPC read. Defaults to the epoch for
+  /// any row that predates this column (see this field's own migration) — always <= now, matching
+  /// the contract's "0 means no restriction" semantics for a launch created before this existed.
+  tradingStartsAt     DateTime @default("1970-01-01T00:00:00.000Z")
+  graduated           Boolean
+  active              Boolean
+  createdAtChain      DateTime
+  graduatedAtChain    DateTime?
+  updatedAtChain      DateTime
+  /// Last block this row was updated from — informational only, same convention as
+  /// Agent.lastIndexedAt.
+  lastIndexedAt       BigInt?
+
+  @@unique([chain, launchChainId])
+  @@index([chain, graduated, graduatedAtChain])
+  @@index([chain, active])
+  @@index([agentChainId])
+}
+
+/// Off-chain-authored descriptive metadata (socials/team/description) for a launch — same
+/// "not populated by the indexer, gates on the on-chain creator" shape as ScheduledLaunch.
+/// ClawdHQLaunchpad.sol has no concept of any of this on-chain; a launch is tradeable
+/// regardless of whether this row exists.
+model LaunchMetadata {
+  chain         Chain
+  launchChainId String
+  websiteUrl    String?
+  twitterUrl    String?
+  telegramUrl   String?
+  description   String?
+  /// Freeform `{name, role}[]`-shaped team-member list — descriptive only, not used for any
+  /// authorization decision (matches PublishedSkill.paramsJson's own "flexible descriptive
+  /// data, not a typed relation" convention).
+  team          Json?
+  updatedAt     DateTime @updatedAt
+
+  @@id([chain, launchChainId])
+}
+
+/// Real per-trade log of Launchpad bonding-curve buys/sells, populated by the indexer from
+/// ClawdHQLaunchpad.sol's TokensPurchased/TokensSold events. Previously nothing tracked this
+/// at all — not even off-chain. Immutable once written (a trade never changes after it
+/// happens), so this is a direct-from-event write like GovernanceVote, not a resync-from-
+/// current-state model like Listing/Bid.
+model LaunchTrade {
+  id             String    @id @default(cuid())
+  chain          Chain
+  launchChainId  String
+  traderAddress  String
+  side           TradeSide
+  /// 18-decimal raw AgentToken units — see Launch.totalSupply's doc comment on why this is
+  /// Decimal(78,0) rather than BigInt/BIGINT (Postgres bigint overflows well below this
+  /// contract's realistic per-trade token amounts). Discovered via a real overflow while
+  /// smoke-testing the Launchpad rebuild — this column has silently overflowed for any trade
+  /// beyond ~9.22 whole tokens since it was first introduced.
+  tokenAmount    Decimal   @db.Decimal(78, 0)
+  usdcAmount     BigInt
+  txHash         String
+  logIndex       Int
+  createdAtChain DateTime
+  createdAt      DateTime? @default(now())
+
+  @@unique([chain, txHash, logIndex])
+  @@index([traderAddress])
+  @@index([chain, launchChainId])
+  @@index([chain, launchChainId, createdAtChain])
+}
+
+/// Tracks the highest $1,000 cumulative-usdcRaised bracket already announced to ClawdHQ for a
+/// given launch (see apps/indexer's syncLaunchMilestone) — usdcRaised itself always comes from a
+/// fresh on-chain read of ClawdHQLaunchpad.sol's `launches()` getter, never reconstructed from
+/// LaunchTrade rows, so this table only needs to remember "the last bracket we already posted."
+model LaunchMilestone {
+  id                String   @id @default(cuid())
+  chain             Chain
+  launchChainId     String
+  lastMilestoneUsdc BigInt
+  updatedAt         DateTime @updatedAt
+
+  @@unique([chain, launchChainId])
+}
+
+/// Multi-Agent Squad Bundles: Packages of complementary autonomous agents syndicated together
+/// under a unified objective and flat USDC pricing.
+model SquadBundle {
+  id              String        @id @default(cuid())
+  chain           Chain         @default(ARC_TESTNET)
+  name            String
+  description     String
+  category        String        // "DeFi & Trading", "Security & Auditing", "Social & Intelligence", "Autonomous Execution", "Analytics", "General"
+  priceUsdc       Decimal       @db.Decimal(12, 2)
+  creatorAddress  String
+  tags            String[]
+  isPublished     Boolean       @default(true)
+  usageCount      Int           @default(0)
+  totalVolumeUsdc Decimal       @default(0) @db.Decimal(12, 2)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  members         SquadMember[]
+  hires           SquadHire[]
+
+  @@index([chain, category, isPublished])
+  @@index([creatorAddress])
+}
+
+model SquadMember {
+  id           String      @id @default(cuid())
+  bundleId     String
+  bundle       SquadBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  agentChainId String      // on-chain agent ID
+  role         String      // e.g. "Lead Arbitrageur", "Bytecode Auditor"
+  splitBps     Int         @default(5000) // Revenue share in basis points (e.g. 5000 = 50%)
+
+  @@unique([bundleId, agentChainId])
+  @@index([agentChainId])
+}
+
+model SquadHire {
+  id           String      @id @default(cuid())
+  bundleId     String
+  bundle       SquadBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  buyerAddress String
+  objective    String
+  status       String      @default("DISPATCHED") // "DISPATCHED" | "COMPLETED" | "FAILED"
+  jobChainIds  String[]    // Associated onchain job IDs if any
+  deliverable  String?
+  createdAt    DateTime    @default(now())
+
+  @@index([bundleId])
+  @@index([buyerAddress])
+}
+

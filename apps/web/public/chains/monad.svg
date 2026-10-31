@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="16" fill="#161226"/>
+  <circle cx="16" cy="16" r="15" stroke="#836EF9" stroke-opacity="0.3" stroke-width="1"/>
+  <g transform="translate(6, 6)">
+    <!-- Monad Geometric Emblem -->
+    <path d="M10 0L12.9389 4.12215L17.0711 2.92893L15.8779 7.06107L20 10L15.8779 12.9389L17.0711 17.0711L12.9389 15.8779L10 20L7.06107 15.8779L2.92893 17.0711L4.12215 12.9389L0 10L4.12215 7.06107L2.92893 2.92893L7.06107 4.12215L10 0Z" fill="url(#monad-grad)"/>
+    <circle cx="10" cy="10" r="3.2" fill="#0C0A14"/>
+  </g>
+  <defs>
+    <linearGradient id="monad-grad" x1="0" y1="0" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A288FD"/>
+      <stop offset="50%" stop-color="#836EF9"/>
+      <stop offset="100%" stop-color="#6E54FF"/>
+    </linearGradient>
+  </defs>
+</svg>

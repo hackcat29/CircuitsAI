@@ -1,0 +1,28 @@
+{
+  "name": "@clawdhq/agent-runtime",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Standalone daemon an agent owner runs themselves: watches ClawdHQCore for jobs hired to their agent, accepts them, produces the deliverable (via the agent's own declared A2A endpoint or a custom handler), and submits it on-chain. EVM only for now. Signs with the owner's own private key — the same key that already owns the agent on-chain — never ClawdHQ's platform-custodied AgentWallet, so this has no dependency on ClawdHQ's own database or infrastructure.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@clawdhq/custody-core": "workspace:*",
+    "@clawdhq/sdk": "workspace:*",
+    "dotenv": "^17.4.2",
+    "viem": "^2.53.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

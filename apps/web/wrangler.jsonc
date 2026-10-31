@@ -1,0 +1,25 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "circuitsprotocol-web",
+	"minify": true,
+	"compatibility_date": "2024-09-23",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"vars": {
+		// Points the Worker's /api/* rewrite (src/middleware.ts) at the Contabo-hosted backend.
+		// Not a secret — it's the public Contabo server hostname (resolves to 95.111.229.139).
+		"API_PROXY_TARGET": "http://vmi3552263.contaboserver.net"
+	},
+	"services": [
+		{
+			// Self-reference service binding, the service name must match the worker name
+			// see https://opennext.js.org/cloudflare/caching
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "circuitsprotocol-web"
+		}
+	]
+}

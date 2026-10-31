@@ -1,0 +1,231 @@
+// Store for the Degen autonomous-trading feature: per-agent risk config/kill switch, custodied
+// venue wallets, and the order/position ledger. Isolated from marketplace-db and social-db on
+// purpose — this is the one schema in the app that ever holds encrypted private key material
+// for real custodied funds, so it gets its own database, its own migration history, and (in
+// production) its own access boundary.
+//
+// Authority model, deliberately split like marketplace-db's:
+//  - TradingAgentConfig / TradingWallet ARE the source of truth — risk limits, the kill switch,
+//    and custody key material are pure app-level policy with no on-chain equivalent to mirror.
+//  - TradingOrder / Position are a log/cache of what each external venue (Hyperliquid, Pump.fun,
+//    Polymarket) or ClawdHQ's own chains confirmed — never trusted as authoritative on their own,
+//    same "never the source of truth for money" stance marketplace-db documents for its own
+//    escrow mirror.
+
+generator client {
+  provider = "prisma-client-js"
+  // Custom output, not the default node_modules/@prisma/client — see marketplace-db/social-db's
+  // schema.prisma for why (pnpm dedupes identical @prisma/client versions to one shared store
+  // location; without a custom output path, whichever package last ran `prisma generate` wins
+  // and silently overwrites the others' generated model types).
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DEGEN_DATABASE_URL")
+}
+
+// Duplicated from marketplace-db's/social-db's Chain enum on purpose — separate Prisma
+// datasource/client, so generated types can't be shared across packages. Keep in sync by hand.
+// ARC_TESTNET was missing here until this migration — a real drift bug, not intentional: it left
+// this schema unable to represent an Arc-based agent's config at all, which matters because
+// CLAWDHQ_LAUNCH (below) only ever trades Arc-based launchpad tokens, and the new SPORTYSTAKE_*
+// venues are Arc-only too.
+enum Chain {
+  BSC_TESTNET
+  BASE_SEPOLIA
+  ETH_SEPOLIA
+  ARC_MAINNET
+  ARC_TESTNET
+  MONAD_TESTNET
+  MONAD_MAINNET
+  SOLANA_DEVNET
+  SUI_TESTNET
+}
+
+// Hyperliquid isn't one of the agent's registration chains above (its agent-wallet is a new,
+// independent address regardless of which chain the agent itself is registered on) — Venue is
+// its own axis, orthogonal to Chain.
+enum Venue {
+  HYPERLIQUID
+  CLAWDHQ_LAUNCH
+  // Both backed by sportystake's BettingCore contract on Arc (see venues/sportystakeBetting.ts)
+  // — same underlying markets/client, split into two Venue values because Circuits Protocol
+  // frames them as distinct products (general sports outcomes vs. traditional sportsbook bet
+  // types), not because the settlement mechanics differ.
+  SPORTYSTAKE_PREDICTIONS
+  SPORTYSTAKE_SPORTSBOOK
+  // Backed by two different sportystake contracts, dispatched by the `market` string's prefix
+  // (see venues/sportystakeCasino.ts): CasinoHouse for the instant-resolve games ("dice:...",
+  // "slots:...", "roulette:...", "blackjack", "baccarat:...") and CrashGame for the multiplayer
+  // round game ("crash:<autoCashoutX100>"). One Venue value, not two, since the UI's "Casino"
+  // toggle is meant to cover all of it at once, same as the /degen/casino page.
+  SPORTYSTAKE_CASINO
+}
+
+enum Mode {
+  PAPER
+  LIVE
+}
+
+enum WalletStatus {
+  ACTIVE
+  WITHDRAWN
+  REVOKED
+}
+
+enum OrderStatus {
+  FILLED
+  REJECTED
+  ERROR
+}
+
+enum RiskEventKind {
+  POSITION_CAP
+  DAILY_LOSS
+  KILL_SWITCH
+  GRADUATION_GUARD
+  VENUE_NOT_ALLOWED
+}
+
+enum BetSettlementStatus {
+  PENDING
+  SETTLED
+  // The reconciliation job's own claim/refund tx reverted or the RPC call failed outright —
+  // distinct from PENDING so a stuck bet is visible rather than silently retried forever.
+  FAILED
+}
+
+model TradingAgentConfig {
+  id                String    @id @default(cuid())
+  chain             Chain
+  agentChainId      String
+  mode              Mode      @default(PAPER)
+  killSwitchEnabled Boolean   @default(false)
+  killedAt          DateTime?
+  killedReason      String?
+  allowedVenues     Venue[]
+  maxPositionUsdc   Decimal   @db.Decimal(30, 10)
+  maxDailyLossUsdc  Decimal   @db.Decimal(30, 10)
+  paperBankrollUsdc Decimal   @default(10000) @db.Decimal(30, 10)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([chain, agentChainId])
+}
+
+// LIVE-mode custody only. An agent with no rows here has never gone LIVE on any venue — PAPER
+// mode never creates or touches a TradingWallet.
+model TradingWallet {
+  id                  String       @id @default(cuid())
+  chain               Chain
+  agentChainId        String
+  venue               Venue
+  address             String
+  /// Envelope-encrypted: a KMS-held root key encrypts a per-wallet data key, which encrypts
+  /// this. Never stores or logs plaintext key material.
+  encryptedPrivateKey String
+  keyVersion          Int          @default(1)
+  status              WalletStatus @default(ACTIVE)
+  createdAt           DateTime     @default(now())
+
+  @@unique([chain, agentChainId, venue])
+}
+
+// Append-only audit ledger — PAPER and LIVE rows share this table, distinguished by `mode`, so
+// the two modes never drift in shape.
+model TradingOrder {
+  id            String      @id @default(cuid())
+  chain         Chain
+  agentChainId  String
+  venue         Venue
+  mode          Mode
+  /// Idempotency key supplied by the caller (the external "brain") — a retried request with the
+  /// same key returns the original result instead of double-filling.
+  clientOrderId String
+  action        String
+  market        String
+  requestedUsdc Decimal     @db.Decimal(30, 10)
+  status        OrderStatus
+  fillPrice     Decimal?    @db.Decimal(30, 10)
+  txHashOrRef   String?
+  rejectReason  String?
+  createdAt     DateTime    @default(now())
+
+  @@unique([chain, agentChainId, venue, mode, clientOrderId])
+  @@index([chain, agentChainId, createdAt])
+}
+
+// Derived/denormalized open exposure per venue+market, updated transactionally alongside
+// TradingOrder writes — same "denormalized counters updated alongside the related row's
+// creation" convention social-db's Post.likeCount/commentCount already uses, not a materialized
+// view.
+model Position {
+  id              String   @id @default(cuid())
+  chain           Chain
+  agentChainId    String
+  venue           Venue
+  mode            Mode
+  market          String
+  /// Signed: positive = long/holding, negative = short.
+  netSizeUsdc     Decimal  @default(0) @db.Decimal(30, 10)
+  avgEntryPrice   Decimal? @db.Decimal(30, 10)
+  realizedPnlUsdc Decimal  @default(0) @db.Decimal(30, 10)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([chain, agentChainId, venue, mode, market])
+}
+
+// Every risk-limit breach or kill-switch trigger, including on the reject path — audit trail
+// surfaced in the Degen UI, and what makes a "risk-capped" rejection distinguishable from a
+// venue error for the caller.
+model RiskEvent {
+  id           String        @id @default(cuid())
+  chain        Chain
+  agentChainId String
+  kind         RiskEventKind
+  detail       String
+  createdAt    DateTime      @default(now())
+
+  @@index([chain, agentChainId, createdAt])
+}
+
+// The one piece the generic TradingOrder/Position ledger can't represent on its own: a bet's
+// real outcome is only known asynchronously, once its market settles on-chain, not at the
+// moment placeOrder() fills. sportystakeReconciliation.ts polls rows here, checks the market's
+// real on-chain status via BettingClient.getMarket, and — once settled — claims the payout (or
+// refund) and feeds the actual result back into Position.realizedPnlUsdc as a synthetic closing
+// fill. Until that job runs, a bet just placed shows here as PENDING; nothing else reads this
+// table as authoritative (see this schema's own top-of-file authority-model note).
+model PendingBetSettlement {
+  id             String              @id @default(cuid())
+  chain          Chain
+  agentChainId   String
+  venue          Venue
+  /// The exact TradingOrder this bet was placed under — lets the reconciliation job find the
+  /// Position row (chain, agentChainId, venue, mode, market) it needs to close out.
+  tradingOrderId String
+  market         String
+  /// bytes32 on-chain betId from BettingCore's BetPlaced event (see BettingClient.placeBet).
+  betId          String
+  /// USDC stake (6dec raw units, as a decimal string) — needed at settlement time to compute the
+  /// synthetic closing fill price (entry * payout / stake), not re-derivable from Position alone
+  /// once other bets on the same market have also filled.
+  stakeUsdc      Decimal             @db.Decimal(30, 10)
+  /// Odds at placement (decimal, e.g. 1.85) — this bet's own avgEntryPrice contribution. Pinned
+  /// to 1 for SPORTYSTAKE_CASINO rows, which have no real odds concept — only a payout ratio.
+  oddsAtEntry    Decimal             @db.Decimal(30, 10)
+  /// Venue-specific extras that don't warrant their own columns: CasinoHouse rows stash the
+  /// provably-fair proof (serverSeed/serverSeedHash/clientSeed/nonce/game detail); CrashGame
+  /// rows stash `joinedAtBlock` (the joinRound tx's block number, so the reconciliation job's
+  /// PayoutCredited log lookup has a tight fromBlock instead of scanning from genesis).
+  metadata       Json?
+  status         BetSettlementStatus @default(PENDING)
+  failReason     String?
+  createdAt      DateTime            @default(now())
+  settledAt      DateTime?
+
+  @@index([status, chain])
+  @@index([market])
+}
