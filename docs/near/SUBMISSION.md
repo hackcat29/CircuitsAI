@@ -2,6 +2,8 @@
 
 Repository: https://github.com/hackcat29/CircuitsAI
 
+Hosted demo: https://hackcat29.github.io/CircuitsAI/
+
 Tracks: Agent Economy (`agents`) and AI Security & Defense (`security`).
 
 Prize payout: `hackcat.near` (mainnet). Demo owner: `circuitsai-hackcat.testnet`; it is a different account and is not the payout account.
@@ -23,7 +25,9 @@ AI agents need money, but they shouldn't get unlimited wallet authority.
 
 We built CircuitsAI for NEAR HACKATHON: scoped agent accounts, on-chain USDC job limits and escrow, policy-gated Chain Signatures, Intents payment routing, and verifiable private inference.
 
-Demo and reproducible code: https://github.com/hackcat29/CircuitsAI
+Demo: https://hackcat29.github.io/CircuitsAI/
+
+Reproducible code: https://github.com/hackcat29/CircuitsAI
 
 @NEARProtocol #NEARHackathon
 

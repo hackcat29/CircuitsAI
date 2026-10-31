@@ -63,9 +63,6 @@ export default function DashboardPage() {
         {/* 1. Your Agents (Single Agent on mobile with View All) */}
         <MyAgentsFleetGrid />
 
-        {/* 2. Trending Launchpad Tokens (Top 5 Listing Mode) */}
-
-
         {/* 3. Needs Attention */}
         <NeedsAttentionCard />
 
@@ -90,15 +87,7 @@ export default function DashboardPage() {
 
       {/* ── DESKTOP ARCHITECTURE (>= lg) ── */}
       <div className="hidden lg:flex flex-col gap-6">
-        {/* Primary 50/50 Split Grid: Your Agents + Trending Launches */}
-        <div className="grid grid-cols-2 gap-5 items-stretch">
-          <div className="flex flex-col h-full">
-            <MyAgentsFleetGrid />
-          </div>
-          <div className="flex flex-col h-full">
-    
-          </div>
-        </div>
+        <MyAgentsFleetGrid />
 
         {/* Command Terminal & Needs Attention / Quick Actions (50/50 Split) */}
         <div className="grid grid-cols-2 gap-5 items-stretch">
