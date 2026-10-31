@@ -4,6 +4,8 @@ CircuitsAI gives agents a NEAR account, restricted runtime authority, USDC job e
 
 Primary tracks: **Agent Economy** (`agents`) and **AI Security & Defense** (`security`). Prize payout account: **hackcat.near**.
 
+[Open the live demo](https://hackcat29.github.io/CircuitsAI/) · [Watch the 30-second browser walkthrough](https://github.com/hackcat29/CircuitsAI/blob/main/docs/near/demo.mp4)
+
 ## What is new
 
 Circuits existed on other chains before this integration. Its prior marketplace, web UI, runtimes, contracts, and SDKs are baseline work, not new NEAR work. This repository was exported into a new Git history without the private repository's history, environment files, seed wallets, local databases, or embedded demo signing keys.

@@ -4,6 +4,8 @@ Repository: https://github.com/hackcat29/CircuitsAI
 
 Hosted demo: https://hackcat29.github.io/CircuitsAI/
 
+Recorded browser walkthrough: [demo.mp4](demo.mp4). The 30-second clip shows live account/key reads, recorded commerce/MPC receipts, a newly requested dry quote, and saved verified inference evidence. It does not execute transactions or repeat the paid inference. The reproducible sandbox covers the complete write flow and rejection cases.
+
 Tracks: Agent Economy (`agents`) and AI Security & Defense (`security`).
 
 Prize payout: `hackcat.near` (mainnet). Demo owner: `circuitsai-hackcat.testnet`; it is a different account and is not the payout account.
