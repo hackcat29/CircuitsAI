@@ -56,6 +56,7 @@ for (const directory of [
   "packages/near-ui",
   "apps/near-demo",
   "packages/contracts-near",
+  "packages/custody-db/prisma/migrations/20261031150000_near_agent_economy",
   "scripts/near",
   "docs/near",
   "apps/web/src/components/near",
@@ -69,6 +70,8 @@ for (const directory of [
   await walk(directory);
 paths.add(".github/workflows/near.yml");
 paths.add(".github/workflows/pages.yml");
+paths.add("packages/custody-core/src/nearAgentSigner.ts");
+paths.add("packages/custody-core/src/nearIntentsSwap.ts");
 paths.add("apps/web/public/near/agent-wallet.wasm");
 function permitted(name) {
   const parts = name.split("/");
